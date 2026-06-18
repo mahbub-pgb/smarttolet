@@ -5,6 +5,7 @@ const ctrl = require('../controllers/auth.controller');
 const validate = require('../middlewares/validate.middleware');
 const { authenticate } = require('../middlewares/auth.middleware');
 const { authLimiter, otpLimiter } = require('../middlewares/rateLimit.middleware');
+const { uploadAvatar } = require('../middlewares/upload.middleware');
 const v = require('../validations/auth.validation');
 
 /**
@@ -63,6 +64,27 @@ router.post('/otp/verify', authLimiter, validate(v.verifyOtp), ctrl.verifyOtp);
  *       401: { $ref: '#/components/responses/Unauthorized' }
  */
 router.put('/profile', authenticate, validate(v.completeProfile), ctrl.completeProfile);
+
+/**
+ * @openapi
+ * /auth/avatar:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Upload or replace the authenticated user's profile image
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profileImage: { type: string, format: binary }
+ *     responses:
+ *       200: { description: Profile image updated, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       400: { description: No image provided, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
+router.post('/avatar', authenticate, uploadAvatar, ctrl.uploadAvatar);
 
 /**
  * @openapi

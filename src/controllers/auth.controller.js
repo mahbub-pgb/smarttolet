@@ -37,6 +37,11 @@ exports.completeProfile = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: 'Profile updated', data: { user } });
 });
 
+exports.uploadAvatar = asyncHandler(async (req, res) => {
+  const user = await authService.updateAvatar(req.user._id, req.file);
+  sendSuccess(res, { message: 'Profile image updated', data: { user } });
+});
+
 exports.login = asyncHandler(async (req, res) => {
   const { user, tokens } = await authService.login(req.body);
   setAuthCookies(res, tokens);

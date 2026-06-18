@@ -4,6 +4,7 @@ const { userRepository } = require('../repositories');
 const { Subscription } = require('../models');
 const otpService = require('./otp.service');
 const notificationService = require('./notification.service');
+const cloudinaryService = require('./cloudinary.service');
 const ApiError = require('../utils/ApiError');
 const {
   issueTokenPair,
@@ -87,6 +88,23 @@ class AuthService {
       }
     }
 
+    await user.save();
+    return user;
+  }
+
+  /** Upload (or replace) the authenticated user's profile image. */
+  async updateAvatar(userId, file) {
+    if (!file) throw ApiError.badRequest('No image file provided', { code: 'NO_FILE' });
+
+    const user = await userRepository.findById(userId);
+    if (!user) throw ApiError.notFound('User not found');
+
+    const { url } = await cloudinaryService.uploadBuffer(file.buffer, {
+      folder: 'smart-tolet/avatars',
+      mimetype: file.mimetype,
+    });
+
+    user.profileImage = url;
     await user.save();
     return user;
   }
