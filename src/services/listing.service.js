@@ -301,6 +301,68 @@ class ListingService {
     return expiry;
   }
 
+  /**
+   * Notify owners whose approved listings expire within `withinDays` and that
+   * haven't been warned yet for the current active period. Returns the number
+   * of warnings sent. Called periodically by the background jobs.
+   */
+  async warnExpiring(withinDays = 3) {
+    const now = new Date();
+    const soon = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000);
+    const due = await listingRepository.find(
+      {
+        status: LISTING_STATUS.APPROVED,
+        expiresAt: { $gt: now, $lte: soon },
+        expiryWarnedAt: null,
+      },
+      { projection: '_id owner title expiresAt', limit: 500 },
+    );
+
+    for (const listing of due) {
+      // eslint-disable-next-line no-await-in-loop
+      await notificationService.notify(listing.owner, {
+        title: 'Listing expiring soon',
+        description: `"${listing.title}" will be deactivated on ${listing.expiresAt.toDateString()}. Renew it to keep it live.`,
+        type: NOTIFICATION_TYPES.LISTING_EXPIRING,
+        reference: { model: 'Listing', id: listing._id },
+      });
+    }
+
+    if (due.length) {
+      await listingRepository.model.updateMany(
+        { _id: { $in: due.map((l) => l._id) } },
+        { expiryWarnedAt: now },
+      );
+    }
+    return due.length;
+  }
+
+  /**
+   * Owner-triggered renewal: extends the active period from now using the
+   * current admin expiry setting and reactivates a listing that had expired.
+   */
+  async renew(id, userId) {
+    const listing = await listingRepository.findById(id);
+    if (!listing) throw ApiError.notFound('Listing not found');
+    if (String(listing.owner) !== String(userId)) {
+      throw ApiError.forbidden('You can only renew your own listings');
+    }
+    if (![LISTING_STATUS.APPROVED, LISTING_STATUS.EXPIRED].includes(listing.status)) {
+      throw ApiError.badRequest('Only approved or expired listings can be renewed');
+    }
+
+    // Reactivating an expired listing counts against the plan's active limit.
+    if (listing.status === LISTING_STATUS.EXPIRED) {
+      await this.assertWithinPlanLimit(userId);
+      listing.status = LISTING_STATUS.APPROVED;
+    }
+
+    listing.expiresAt = await this.computeExpiry();
+    listing.expiryWarnedAt = undefined;
+    await listing.save();
+    return listing;
+  }
+
   async moderate(id, moderatorId, { approve, reason }) {
     const listing = await listingRepository.findById(id);
     if (!listing) throw ApiError.notFound('Listing not found');
@@ -311,7 +373,10 @@ class ListingService {
     if (!approve) listing.rejectionReason = reason;
     // On approval the listing stays active for the admin-configured duration,
     // after which the hourly expireListings job deactivates it. 0 = never.
-    if (approve) listing.expiresAt = await this.computeExpiry();
+    if (approve) {
+      listing.expiresAt = await this.computeExpiry();
+      listing.expiryWarnedAt = undefined; // fresh active period, allow a new warning
+    }
     await listing.save();
 
     await notificationService.notify(listing.owner, {

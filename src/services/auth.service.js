@@ -99,13 +99,20 @@ class AuthService {
     const user = await userRepository.findById(userId);
     if (!user) throw ApiError.notFound('User not found');
 
-    const { url } = await cloudinaryService.uploadBuffer(file.buffer, {
+    const { url, publicId } = await cloudinaryService.uploadBuffer(file.buffer, {
       folder: 'smart-tolet/avatars',
       mimetype: file.mimetype,
     });
 
+    const oldPublicId = user.profileImagePublicId;
     user.profileImage = url;
+    user.profileImagePublicId = publicId;
     await user.save();
+
+    // Best-effort cleanup of the replaced image; never block the response on it.
+    if (oldPublicId && oldPublicId !== publicId) {
+      cloudinaryService.destroy(oldPublicId).catch(() => {});
+    }
     return user;
   }
 

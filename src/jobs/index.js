@@ -1,6 +1,7 @@
 'use strict';
 
 const subscriptionService = require('../services/subscription.service');
+const listingService = require('../services/listing.service');
 const { Listing } = require('../models');
 const { LISTING_STATUS } = require('../constants');
 const logger = require('../config/logger');
@@ -40,6 +41,12 @@ function startJobs() {
     );
     if (res.modifiedCount) logger.info(`Expired ${res.modifiedCount} listings`);
   }, 'expireListings');
+
+  // Warn owners whose approved listings expire within the next few days.
+  every(HOUR, async () => {
+    const n = await listingService.warnExpiring(3);
+    if (n) logger.info(`Sent ${n} listing-expiry warnings`);
+  }, 'warnExpiringListings');
 
   logger.info('Background jobs scheduled');
 }

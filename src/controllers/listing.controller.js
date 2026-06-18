@@ -20,6 +20,11 @@ exports.remove = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: 'Listing deleted' });
 });
 
+exports.renew = asyncHandler(async (req, res) => {
+  const listing = await listingService.renew(req.params.id, req.user._id);
+  sendSuccess(res, { message: 'Listing renewed', data: { listing } });
+});
+
 exports.getOne = asyncHandler(async (req, res) => {
   const listing = await listingService.getById(req.params.id, { incrementView: true });
   sendSuccess(res, { data: { listing } });

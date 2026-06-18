@@ -117,6 +117,9 @@ const listingSchema = new Schema(
 
     isFeatured: { type: Boolean, default: false, index: true },
     expiresAt: { type: Date },
+    // Set when the owner has been notified of an upcoming expiry, so the
+    // warning job sends the reminder only once per active period.
+    expiryWarnedAt: { type: Date },
     viewsCount: { type: Number, default: 0 },
     reportsCount: { type: Number, default: 0 },
   },

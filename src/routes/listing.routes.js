@@ -132,6 +132,21 @@ router.delete('/:id', authenticate, validate({ params: v.idParam }), ctrl.remove
 
 /**
  * @openapi
+ * /listings/{id}/renew:
+ *   post:
+ *     tags: [Listings]
+ *     summary: Renew (extend the active period of) a listing you own
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Listing renewed, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ */
+router.post('/:id/renew', authenticate, validate({ params: v.idParam }), ctrl.renew);
+
+/**
+ * @openapi
  * /listings/{id}/report:
  *   post:
  *     tags: [Listings]

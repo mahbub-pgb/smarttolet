@@ -40,6 +40,9 @@ const userSchema = new Schema(
     },
 
     profileImage: { type: String },
+    // Cloudinary public id for the current avatar, kept so the previous image
+    // can be deleted when a new one is uploaded. Stripped from JSON responses.
+    profileImagePublicId: { type: String },
     dateOfBirth: { type: Date },
     gender: { type: String, enum: Object.values(GENDER) },
     occupation: { type: String, trim: true },
@@ -107,6 +110,7 @@ userSchema.set('toJSON', {
   transform(_doc, ret) {
     delete ret.password;
     delete ret.tokenVersion;
+    delete ret.profileImagePublicId;
     delete ret.__v;
     return ret;
   },
