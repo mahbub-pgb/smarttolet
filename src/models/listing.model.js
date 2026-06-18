@@ -60,8 +60,10 @@ const listingSchema = new Schema(
       road: { type: String, trim: true },
       houseNumber: { type: String, trim: true },
     },
+    // No default on `type`: a half-formed { type: 'Point' } without coordinates
+    // breaks the 2dsphere index. Set together with coordinates when geo-tagged.
     geo: {
-      type: { type: String, enum: ['Point'], default: 'Point' },
+      type: { type: String, enum: ['Point'] },
       coordinates: { type: [Number], default: undefined }, // [lng, lat]
     },
 

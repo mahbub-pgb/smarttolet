@@ -19,6 +19,8 @@ const config = {
   port: Number(process.env.PORT || 5000),
   apiPrefix: process.env.API_PREFIX || '/api/v1',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:3000',
+  // Public base URL of this server (used to build local upload URLs in dev).
+  serverUrl: process.env.SERVER_URL || `http://localhost:${Number(process.env.PORT || 5000)}`,
 
   mongoUri: required('MONGO_URI', 'mongodb://127.0.0.1:27017/smart_tolet'),
   redisUrl: required('REDIS_URL', 'redis://127.0.0.1:6379'),

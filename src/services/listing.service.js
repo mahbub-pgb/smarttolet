@@ -59,7 +59,7 @@ class ListingService {
   async uploadImages(files = []) {
     if (!files.length) return [];
     if (files.length > 10) throw ApiError.badRequest('Maximum 10 images allowed');
-    return Promise.all(files.map((f) => cloudinaryService.uploadBuffer(f.buffer)));
+    return Promise.all(files.map((f) => cloudinaryService.uploadBuffer(f.buffer, { mimetype: f.mimetype })));
   }
 
   async getById(id, { incrementView = false } = {}) {

@@ -27,7 +27,10 @@ const userSchema = new Schema(
       match: [/^\+8801[3-9]\d{8}$/, 'Invalid Bangladesh mobile number'],
     },
     // Optional: account is created right after OTP; password set during profile step.
-    password: { type: String, select: false, minlength: 60 /* bcrypt hash */ },
+    // No minlength here: validation runs on the plaintext (before the pre-save
+    // hash hook), so a hash-length minimum would always fail. Plaintext strength
+    // rules (min 8, upper/lower/number) are enforced in auth.validation.js.
+    password: { type: String, select: false },
 
     role: {
       type: String,
@@ -44,8 +47,11 @@ const userSchema = new Schema(
     address: { type: String, trim: true },
 
     // GeoJSON point enables $near queries. coordinates = [lng, lat].
+    // No default on `type`: without it Mongoose would materialize a half-formed
+    // { type: 'Point' } with no coordinates, which the 2dsphere index rejects
+    // ("Point must be an array or object"). It's set together with coordinates.
     location: {
-      type: { type: String, enum: ['Point'], default: 'Point' },
+      type: { type: String, enum: ['Point'] },
       coordinates: { type: [Number], default: undefined },
     },
 

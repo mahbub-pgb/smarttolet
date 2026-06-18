@@ -1,5 +1,6 @@
 'use strict';
 
+const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -50,6 +51,15 @@ app.use(compression());
 if (!config.isProd) {
   app.use(morgan('dev'));
 }
+
+// ---- Locally-stored uploads (dev fallback when Cloudinary is unconfigured) ----
+// Override helmet's same-origin CORP so the client (different port) can load them.
+app.use(
+  '/uploads',
+  express.static(path.join(process.cwd(), 'uploads'), {
+    setHeaders: (res) => res.set('Cross-Origin-Resource-Policy', 'cross-origin'),
+  }),
+);
 
 // ---- Docs ----
 app.use(`${config.apiPrefix}/docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
