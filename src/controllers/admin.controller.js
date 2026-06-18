@@ -28,6 +28,11 @@ exports.listUsers = asyncHandler(async (req, res) => {
   sendSuccess(res, { data: { users: items }, meta: meta(req, total) });
 });
 
+exports.createUser = asyncHandler(async (req, res) => {
+  const user = await adminService.createUser(req.body, req.user);
+  sendSuccess(res, { statusCode: 201, message: 'User created', data: { user } });
+});
+
 exports.setUserStatus = asyncHandler(async (req, res) => {
   const target = await adminService.setStatus(req.params.id, req.body.status);
   sendSuccess(res, { message: 'Status updated', data: { user: target } });

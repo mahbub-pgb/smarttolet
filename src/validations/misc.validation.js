@@ -1,7 +1,9 @@
 'use strict';
 
-const { z, objectId, idParam, pagination } = require('./common.validation');
-const { SUBSCRIPTION_PLANS, PAYMENT_METHODS, REPORT_STATUS } = require('../constants');
+const { z, objectId, idParam, pagination, bdMobile } = require('./common.validation');
+const {
+  SUBSCRIPTION_PLANS, PAYMENT_METHODS, REPORT_STATUS, ROLES,
+} = require('../constants');
 
 const savedSearch = {
   create: {
@@ -75,6 +77,24 @@ const settings = {
   },
 };
 
+const user = {
+  create: {
+    body: z.object({
+      fullName: z.string().min(2).max(120),
+      mobile: bdMobile,
+      email: z.string().email().optional(),
+      password: z
+        .string()
+        .min(8, 'Password must be at least 8 characters')
+        .max(128)
+        .regex(/[a-z]/, 'Must include a lowercase letter')
+        .regex(/[A-Z]/, 'Must include an uppercase letter')
+        .regex(/\d/, 'Must include a number'),
+      role: z.enum(Object.values(ROLES)).optional(),
+    }),
+  },
+};
+
 const report = {
   resolve: {
     params: idParam,
@@ -94,4 +114,4 @@ const nearby = {
   }),
 };
 
-module.exports = { savedSearch, chat, payment, settings, report, nearby, pagination, idParam };
+module.exports = { savedSearch, chat, payment, settings, user, report, nearby, pagination, idParam };

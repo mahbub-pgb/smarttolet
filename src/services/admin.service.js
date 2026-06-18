@@ -5,7 +5,9 @@ const {
 } = require('../models');
 const {
   ROLES, LISTING_STATUS, SUBSCRIPTION_STATUS, PAYMENT_STATUS, ACCOUNT_STATUS,
+  SUBSCRIPTION_PLANS, roleRank,
 } = require('../constants');
+const ApiError = require('../utils/ApiError');
 
 class AdminService {
   /** Dashboard summary cards. */
@@ -96,6 +98,41 @@ class AdminService {
       User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
       User.countDocuments(filter),
     ]).then(([items, total]) => ({ items, total }));
+  }
+
+  /**
+   * Create a user account from the admin dashboard. Admin-created accounts are
+   * trusted (phone pre-verified, active). The creator cannot assign a role at
+   * or above their own rank, mirroring the setRole guard.
+   */
+  async createUser({ fullName, mobile, email, password, role }, creator) {
+    const targetRole = role || ROLES.USER;
+    if (roleRank(targetRole) >= roleRank(creator.role)) {
+      throw ApiError.forbidden('Cannot create a user with a role equal to or above your own');
+    }
+
+    if (await User.findOne({ mobile })) {
+      throw ApiError.conflict('A user with this mobile already exists', { code: 'MOBILE_TAKEN' });
+    }
+    if (email && (await User.findOne({ email: email.toLowerCase() }))) {
+      throw ApiError.conflict('A user with this email already exists', { code: 'EMAIL_TAKEN' });
+    }
+
+    const created = await User.create({
+      fullName,
+      mobile,
+      email,
+      password, // hashed by the model's pre-save hook
+      role: targetRole,
+      isPhoneVerified: true,
+      status: ACCOUNT_STATUS.ACTIVE,
+    });
+
+    // Mirror the normal signup flow: regular users start on the Free plan.
+    if (targetRole === ROLES.USER) {
+      await Subscription.create({ user: created._id, plan: SUBSCRIPTION_PLANS.FREE });
+    }
+    return created;
   }
 
   setStatus(userId, status) {

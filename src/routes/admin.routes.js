@@ -53,6 +53,19 @@ router.get('/users', requirePermission(PERMISSIONS.MANAGE_USERS), ctrl.listUsers
 
 /**
  * @openapi
+ * /admin/users:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Create a new user account
+ *     responses:
+ *       201: { description: User created, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ *       409: { description: Mobile or email already in use, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+ */
+router.post('/users', requirePermission(PERMISSIONS.MANAGE_USERS), validate(m.user.create), ctrl.createUser);
+
+/**
+ * @openapi
  * /admin/users/{id}/status:
  *   patch:
  *     tags: [Admin]
