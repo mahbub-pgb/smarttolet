@@ -203,6 +203,18 @@ class AdminService {
    */
   async sendPromotion(numbers, message) {
     const unique = [...new Set(numbers)];
+
+    // Promotions target non-users only. If any number already belongs to a
+    // registered user, stop and report them so the admin can remove them.
+    const existing = await User.find({ mobile: { $in: unique } }).select('mobile');
+    if (existing.length) {
+      const taken = existing.map((u) => u.mobile);
+      throw ApiError.badRequest(
+        `${taken.length} number(s) already belong to registered users: ${taken.join(', ')}. No SMS was sent.`,
+        { code: 'EXISTING_USERS' },
+      );
+    }
+
     const result = await smsService.sendSms(unique, message);
     const { balance } = await smsService.getBalance().catch(() => ({ balance: null }));
     return {
