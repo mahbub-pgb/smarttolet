@@ -187,11 +187,28 @@ class ListingService {
     return listing;
   }
 
-  async listForModeration({ status = LISTING_STATUS.PENDING, page = 1, limit = 20 } = {}) {
-    return listingRepository.paginate(
-      { status },
-      { page, limit, sort: { createdAt: 1 }, populate: { path: 'owner', select: 'fullName mobile' } },
-    );
+  async listForModeration({ status, type, keyword, sort = 'newest', page = 1, limit = 20 } = {}) {
+    const filter = {};
+    // `status` omitted or 'all' => every listing; otherwise filter by it.
+    if (status && status !== 'all') filter.status = status;
+    if (type) filter.type = type;
+    if (keyword) filter.$text = { $search: keyword };
+
+    const sortMap = {
+      newest: { createdAt: -1 },
+      oldest: { createdAt: 1 },
+      rent_asc: { monthlyRent: 1 },
+      rent_desc: { monthlyRent: -1 },
+      most_viewed: { viewsCount: -1 },
+      most_reported: { reportsCount: -1 },
+    };
+
+    return listingRepository.paginate(filter, {
+      page: Number(page),
+      limit: Math.min(Number(limit) || 20, 100),
+      sort: sortMap[sort] || sortMap.newest,
+      populate: { path: 'owner', select: 'fullName mobile' },
+    });
   }
 }
 
