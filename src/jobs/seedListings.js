@@ -59,20 +59,32 @@ async function getOwnerId() {
   return owner._id;
 }
 
-function makeListing(ownerId, i) {
+// Assign a slug that is unique within `used`, mutating that set.
+function uniqueSlug(base, used) {
+  let slug = base;
+  let n = 1;
+  while (used.has(slug)) {
+    n += 1;
+    slug = `${base}-${n}`;
+  }
+  used.add(slug);
+  return slug;
+}
+
+function makeListing(ownerId, i, used) {
   const _id = new mongoose.Types.ObjectId();
   const place = rand(PLACES);
   const area = rand(place.areas);
   const type = rand(LISTING_TYPES);
   const bedrooms = randInt(1, 5);
-  const title = `${rand(ADJECTIVES)} ${bedrooms} bedroom ${type.replace(/_/g, ' ')} in ${area} #${i + 1}`;
+  const title = `${rand(ADJECTIVES)} ${bedrooms} bedroom ${type.replace(/_/g, ' ')} in ${area}`;
   const now = Date.now();
   return {
     _id,
     owner: ownerId,
     type,
     title,
-    slug: `${slugify(title)}-${_id.toString().slice(-6)}`,
+    slug: uniqueSlug(slugify(title), used),
     description: `A ${rand(ADJECTIVES).toLowerCase()} ${type.replace(/_/g, ' ')} located in ${area}, ${place.district}. Well-connected, ready to move in. Listing reference ${i + 1}.`,
     monthlyRent: randInt(5, 80) * 1000,
     advanceAmount: randInt(0, 3) * 10000,
@@ -95,7 +107,10 @@ function makeListing(ownerId, i) {
 async function seed() {
   await connectDB();
   const ownerId = await getOwnerId();
-  const docs = Array.from({ length: COUNT }, (_, i) => makeListing(ownerId, i));
+  // Seed the used-slug set with slugs already in the DB to avoid collisions.
+  const existing = await Listing.find({}, 'slug').lean();
+  const used = new Set(existing.map((l) => l.slug).filter(Boolean));
+  const docs = Array.from({ length: COUNT }, (_, i) => makeListing(ownerId, i, used));
 
   // Insert in batches to keep memory/load reasonable.
   const BATCH = 500;

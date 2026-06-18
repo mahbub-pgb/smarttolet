@@ -114,13 +114,26 @@ function slugifyTitle(title = '') {
     .slice(0, 80) || 'listing';
 }
 
-// Keep the slug in sync with the title. The 6-char id suffix guarantees
-// uniqueness without a separate DB lookup and keeps the URL stable.
-listingSchema.pre('save', function setSlug(next) {
-  if (this.isModified('title') || !this.slug) {
-    this.slug = `${slugifyTitle(this.title)}-${this._id.toString().slice(-6)}`;
+/**
+ * Produce a slug that is unique among listings. Uses the bare title slug when
+ * free; otherwise appends -2, -3, … (WordPress-style) so URLs stay clean.
+ */
+async function generateUniqueSlug(Model, base, currentId) {
+  let slug = base;
+  let n = 1;
+  // eslint-disable-next-line no-await-in-loop
+  while (await Model.exists({ slug, _id: { $ne: currentId } })) {
+    n += 1;
+    slug = `${base}-${n}`;
   }
-  next();
+  return slug;
+}
+
+// Keep the slug in sync with the title.
+listingSchema.pre('save', async function setSlug() {
+  if (this.isModified('title') || !this.slug) {
+    this.slug = await generateUniqueSlug(this.constructor, slugifyTitle(this.title), this._id);
+  }
 });
 
 listingSchema.index({ geo: '2dsphere' });
