@@ -1,6 +1,6 @@
 'use strict';
 
-const { z, bdMobile } = require('./common.validation');
+const { z, bdMobile, normalizeBdMobile } = require('./common.validation');
 const { GENDER } = require('../constants');
 
 const requestOtp = { body: z.object({ mobile: bdMobile }) };
@@ -41,7 +41,11 @@ const completeProfile = {
 
 const login = {
   body: z.object({
-    identifier: z.string().min(3), // mobile or email
+    // mobile or email — a mobile is canonicalised so users can omit +88.
+    identifier: z
+      .string()
+      .min(3)
+      .transform((v) => (v.includes('@') ? v : normalizeBdMobile(v))),
     password: z.string().min(1),
   }),
 };
