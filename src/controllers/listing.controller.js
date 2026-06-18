@@ -46,6 +46,11 @@ exports.mine = asyncHandler(async (req, res) => {
   });
 });
 
+exports.sitemap = asyncHandler(async (req, res) => {
+  const listings = await listingService.sitemapEntries(req.query.limit);
+  sendSuccess(res, { data: { listings } });
+});
+
 exports.myStats = asyncHandler(async (req, res) => {
   const stats = await listingService.statsFor(req.user._id);
   sendSuccess(res, { data: { stats } });

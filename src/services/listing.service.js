@@ -223,6 +223,14 @@ class ListingService {
     });
   }
 
+  /** Lightweight {slug, updatedAt} list of approved listings for the sitemap. */
+  async sitemapEntries(limit = 5000) {
+    return listingRepository.find(
+      { status: LISTING_STATUS.APPROVED },
+      { projection: 'slug updatedAt', limit: Math.min(Number(limit) || 5000, 50000), sort: { updatedAt: -1 } },
+    );
+  }
+
   async listMine(userId, { status, page = 1, limit = 20 } = {}) {
     const filter = { owner: userId };
     if (status) filter.status = status;

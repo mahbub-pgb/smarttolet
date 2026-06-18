@@ -50,6 +50,9 @@ router.get('/', validate(v.search), ctrl.search);
 // Defined before '/:id' so "map" is not interpreted as a listing id.
 router.get('/map', validate(v.mapQuery), ctrl.mapPoints);
 
+// Public sitemap source: approved listing slugs + timestamps.
+router.get('/sitemap', ctrl.sitemap);
+
 /**
  * @openapi
  * /listings/{id}:
