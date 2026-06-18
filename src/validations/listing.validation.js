@@ -79,9 +79,15 @@ const locationSchema = z.object({
 const create = {
   body: z.object({
     type: z.enum(LISTING_TYPES),
-    title: z.string().min(5).max(150),
-    description: z.string().min(20).max(5000),
-    monthlyRent: z.coerce.number().min(0),
+    title: z
+      .string()
+      .min(5, 'Title must be at least 5 characters')
+      .max(150, 'Title must be at most 150 characters'),
+    description: z
+      .string()
+      .min(20, 'Description must be at least 20 characters')
+      .max(5000, 'Description must be at most 5000 characters'),
+    monthlyRent: z.coerce.number({ message: 'Monthly rent is required' }).min(0, 'Monthly rent cannot be negative'),
     advanceAmount: z.coerce.number().min(0).optional(),
     serviceCharge: z.coerce.number().min(0).optional(),
     availableFrom: z.coerce.date().optional(),
