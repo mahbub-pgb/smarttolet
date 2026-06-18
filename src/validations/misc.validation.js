@@ -78,6 +78,10 @@ const settings = {
         .object({ provider: z.string(), apiKey: z.string(), senderId: z.string() })
         .partial()
         .optional(),
+      passwordChangeSms: z
+        .object({ enabled: z.boolean(), template: z.string().max(480) })
+        .partial()
+        .optional(),
       cloudinary: z
         .object({ cloudName: z.string(), apiKey: z.string(), apiSecret: z.string() })
         .partial()

@@ -28,6 +28,16 @@ const settingsSchema = new Schema(
       senderId: { type: String, default: 'SmartToLet' },
     },
 
+    // SMS sent to a user when an admin changes their password. The {password}
+    // token in the template is replaced with the new plaintext password.
+    passwordChangeSms: {
+      enabled: { type: Boolean, default: false },
+      template: {
+        type: String,
+        default: 'Your Smart To-Let password has been reset by an administrator. New password: {password}',
+      },
+    },
+
     cloudinary: {
       cloudName: { type: String },
       apiKey: { type: String, select: false },

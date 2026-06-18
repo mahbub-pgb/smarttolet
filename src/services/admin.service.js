@@ -8,6 +8,9 @@ const {
   SUBSCRIPTION_PLANS, roleRank,
 } = require('../constants');
 const ApiError = require('../utils/ApiError');
+const settingsService = require('./settings.service');
+const smsService = require('./sms.service');
+const logger = require('../config/logger');
 
 class AdminService {
   /** Dashboard summary cards. */
@@ -179,7 +182,24 @@ class AdminService {
     }
 
     await target.save();
+
+    // Optionally SMS the new password to the user (best-effort; never blocks).
+    if (data.password) {
+      this.notifyPasswordChange(target.mobile, data.password).catch((err) =>
+        logger.error(`Password-change SMS failed: ${err.message}`),
+      );
+    }
     return target;
+  }
+
+  /** Send the new password to the user by SMS when the admin enabled it. */
+  async notifyPasswordChange(mobile, newPassword) {
+    if (!mobile) return;
+    const { passwordChangeSms } = await settingsService.get();
+    if (!passwordChangeSms?.enabled) return;
+    const message = (passwordChangeSms.template || '').replace(/\{password\}/g, newPassword);
+    if (!message.trim()) return;
+    await smsService.sendSms(mobile, message);
   }
 
   setStatus(userId, status) {

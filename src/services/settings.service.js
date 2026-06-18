@@ -57,6 +57,12 @@ class SettingsService {
         apiKey: doc.sms?.apiKey || config.sms.apiKey || null,
         senderId: doc.sms?.senderId || config.sms.senderId,
       },
+      passwordChangeSms: {
+        enabled: !!doc.passwordChangeSms?.enabled,
+        template:
+          doc.passwordChangeSms?.template
+          || 'Your Smart To-Let password has been reset by an administrator. New password: {password}',
+      },
       cloudinary: {
         cloudName: doc.cloudinary?.cloudName || config.cloudinary.cloudName || null,
         apiKey: doc.cloudinary?.apiKey || config.cloudinary.apiKey || null,
@@ -112,6 +118,12 @@ class SettingsService {
     }
     if (patch.listingExpiry) {
       doc.listingExpiry = { ...doc.listingExpiry?.toObject?.(), ...patch.listingExpiry };
+    }
+    if (patch.passwordChangeSms) {
+      doc.passwordChangeSms = {
+        ...doc.passwordChangeSms?.toObject?.(),
+        ...patch.passwordChangeSms,
+      };
     }
     if (patch.sms) doc.sms = { ...doc.sms?.toObject?.(), ...patch.sms };
     if (patch.cloudinary) {
