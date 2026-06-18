@@ -229,6 +229,31 @@ class ListingService {
     return listingRepository.paginate(filter, { page, limit });
   }
 
+  /** Per-status listing counts for the owner's dashboard. */
+  async statsFor(userId) {
+    const rows = await listingRepository.model.aggregate([
+      { $match: { owner: userId } },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]);
+
+    // Start every known status at 0 so the dashboard always has a full set.
+    const byStatus = Object.fromEntries(
+      Object.values(LISTING_STATUS).map((s) => [s, 0]),
+    );
+    let total = 0;
+    rows.forEach(({ _id, count }) => {
+      if (_id in byStatus) byStatus[_id] = count;
+      total += count;
+    });
+
+    return {
+      total,
+      byStatus,
+      // "Active" = visible to renters (approved) or awaiting review.
+      active: byStatus[LISTING_STATUS.APPROVED] + byStatus[LISTING_STATUS.PENDING],
+    };
+  }
+
   // ---- Moderation ----
 
   async moderate(id, moderatorId, { approve, reason }) {

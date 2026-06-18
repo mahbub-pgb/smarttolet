@@ -112,6 +112,18 @@ router.post('/', authenticate, uploadListingImages, validate(v.create), ctrl.cre
  */
 router.get('/me/list', authenticate, ctrl.mine);
 
+/**
+ * @openapi
+ * /listings/me/stats:
+ *   get:
+ *     tags: [Listings]
+ *     summary: Listing counts for the authenticated owner's dashboard
+ *     responses:
+ *       200: { description: Owner stats, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
+router.get('/me/stats', authenticate, ctrl.myStats);
+
 router.put('/:id', authenticate, uploadListingImages, validate(v.update), ctrl.update);
 router.delete('/:id', authenticate, validate({ params: v.idParam }), ctrl.remove);
 

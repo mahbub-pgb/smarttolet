@@ -46,6 +46,11 @@ exports.mine = asyncHandler(async (req, res) => {
   });
 });
 
+exports.myStats = asyncHandler(async (req, res) => {
+  const stats = await listingService.statsFor(req.user._id);
+  sendSuccess(res, { data: { stats } });
+});
+
 /** Smart "what's nearby" for a listing. */
 exports.nearby = asyncHandler(async (req, res) => {
   const listing = await listingService.getById(req.params.id);

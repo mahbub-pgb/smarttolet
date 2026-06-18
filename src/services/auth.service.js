@@ -14,6 +14,7 @@ const {
 const { ACCOUNT_STATUS, ROLES, SUBSCRIPTION_PLANS } = require('../constants');
 
 const OTP_PURPOSE = 'phone_verify';
+const OTP_PURPOSE_RESET = 'password_reset';
 
 class AuthService {
   /** Registration step 1a: send OTP to a mobile number. */
@@ -151,6 +152,49 @@ class AuthService {
     if (!user?.email) throw ApiError.badRequest('No email on profile');
     await otpService.verifyOtp('email_verify', user.email, code);
     user.isEmailVerified = true;
+    await user.save();
+    return user;
+  }
+
+  /** Change the password of the logged-in user. */
+  async changePassword(userId, { currentPassword, newPassword }) {
+    const user = await userRepository.findForAuth({ _id: userId });
+    if (!user) throw ApiError.notFound('User not found');
+
+    // If a password is already set, the current one must be supplied and match.
+    if (user.password) {
+      if (!currentPassword) {
+        throw ApiError.badRequest('Current password is required', { code: 'CURRENT_PASSWORD_REQUIRED' });
+      }
+      if (!(await user.comparePassword(currentPassword))) {
+        throw ApiError.unauthorized('Current password is incorrect', { code: 'BAD_CURRENT_PASSWORD' });
+      }
+    }
+
+    user.password = newPassword; // hashed by the pre-save hook
+    await user.save();
+    return user;
+  }
+
+  /**
+   * Forgot-password step 1: send a reset OTP to the account's mobile. Always
+   * resolves the same way whether or not the number is registered, so the
+   * endpoint cannot be used to enumerate accounts.
+   */
+  async requestPasswordReset(mobile) {
+    const user = await userRepository.findByMobile(mobile);
+    if (!user) return { expiresIn: null };
+    return otpService.requestOtp(OTP_PURPOSE_RESET, mobile);
+  }
+
+  /** Forgot-password step 2: verify the OTP and set a new password. */
+  async resetPassword({ mobile, code, newPassword }) {
+    await otpService.verifyOtp(OTP_PURPOSE_RESET, mobile, code);
+
+    const user = await userRepository.findByMobile(mobile);
+    if (!user) throw ApiError.notFound('User not found');
+
+    user.password = newPassword; // hashed by the pre-save hook
     await user.save();
     return user;
   }

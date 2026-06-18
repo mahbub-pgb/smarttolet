@@ -126,6 +126,43 @@ router.get('/me', authenticate, ctrl.me);
 
 /**
  * @openapi
+ * /auth/password/change:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Change the authenticated user's password
+ *     responses:
+ *       200: { description: Password changed, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
+router.post('/password/change', authenticate, validate(v.changePassword), ctrl.changePassword);
+
+/**
+ * @openapi
+ * /auth/password/forgot:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Request a password-reset OTP by mobile
+ *     security: []
+ *     responses:
+ *       200: { description: Reset code sent (if registered), content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ */
+router.post('/password/forgot', otpLimiter, validate(v.forgotPassword), ctrl.forgotPassword);
+
+/**
+ * @openapi
+ * /auth/password/reset:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Reset password using the mobile OTP
+ *     security: []
+ *     responses:
+ *       200: { description: Password reset, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       400: { description: Invalid or expired OTP, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+ */
+router.post('/password/reset', authLimiter, validate(v.resetPassword), ctrl.resetPassword);
+
+/**
+ * @openapi
  * /auth/email/otp/request:
  *   post:
  *     tags: [Auth]

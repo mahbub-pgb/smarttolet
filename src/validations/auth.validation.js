@@ -54,4 +54,27 @@ const verifyEmail = {
   body: z.object({ code: z.string().regex(/^\d{4,8}$/) }),
 };
 
-module.exports = { requestOtp, verifyOtp, completeProfile, login, refresh, verifyEmail };
+// Authenticated user changing their own password. currentPassword is optional
+// because OTP-only accounts may not have one set yet.
+const changePassword = {
+  body: z.object({
+    currentPassword: z.string().min(1).optional(),
+    newPassword: password,
+  }),
+};
+
+// Forgot-password via phone OTP.
+const forgotPassword = { body: z.object({ mobile: bdMobile }) };
+
+const resetPassword = {
+  body: z.object({
+    mobile: bdMobile,
+    code: z.string().regex(/^\d{4,8}$/, 'Invalid code'),
+    newPassword: password,
+  }),
+};
+
+module.exports = {
+  requestOtp, verifyOtp, completeProfile, login, refresh, verifyEmail,
+  changePassword, forgotPassword, resetPassword,
+};

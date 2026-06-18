@@ -60,6 +60,24 @@ exports.me = asyncHandler(async (req, res) => {
   sendSuccess(res, { data: { user: req.user } });
 });
 
+exports.changePassword = asyncHandler(async (req, res) => {
+  await authService.changePassword(req.user._id, req.body);
+  sendSuccess(res, { message: 'Password changed' });
+});
+
+exports.forgotPassword = asyncHandler(async (req, res) => {
+  const result = await authService.requestPasswordReset(req.body.mobile);
+  sendSuccess(res, {
+    message: 'If that mobile is registered, a reset code has been sent.',
+    data: result,
+  });
+});
+
+exports.resetPassword = asyncHandler(async (req, res) => {
+  await authService.resetPassword(req.body);
+  sendSuccess(res, { message: 'Password reset. You can now sign in.' });
+});
+
 exports.requestEmailOtp = asyncHandler(async (req, res) => {
   const result = await authService.requestEmailOtp(req.user._id);
   sendSuccess(res, { message: 'Email OTP sent', data: result });
