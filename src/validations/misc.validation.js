@@ -65,6 +65,10 @@ const settings = {
       supportPhone: z.string().optional(),
       googleMapsApiKey: z.string().optional(),
       mapDefaultZoom: z.coerce.number().int().min(1).max(20).optional(),
+      promoMessages: z
+        .array(z.object({ title: z.string().min(1).max(120), message: z.string().min(1).max(1000) }))
+        .max(50)
+        .optional(),
       listingExpiry: z
         .object({
           value: z.coerce.number().int().min(0).max(3650),

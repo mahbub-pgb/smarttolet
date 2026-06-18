@@ -51,6 +51,13 @@ const settingsSchema = new Schema(
       unit: { type: String, enum: ['days', 'months'], default: 'days' },
     },
 
+    // Reusable promotional SMS messages the admin can pick from (by title) on
+    // the Promotions screen (or choose "new" to write a one-off message).
+    promoMessages: {
+      type: [{ title: String, message: String, _id: false }],
+      default: [],
+    },
+
     maintenanceMode: { type: Boolean, default: false },
     maintenanceMessage: { type: String },
 
