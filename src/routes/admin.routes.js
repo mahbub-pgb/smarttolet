@@ -66,6 +66,21 @@ router.post('/users', requirePermission(PERMISSIONS.MANAGE_USERS), validate(m.us
 
 /**
  * @openapi
+ * /admin/users/{id}:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: Update any field of a user account (including password)
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: User updated, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ *       409: { description: Mobile or email already in use, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+ */
+router.patch('/users/:id', requirePermission(PERMISSIONS.MANAGE_USERS), validate(m.user.update), ctrl.updateUser);
+
+/**
+ * @openapi
  * /admin/users/{id}/status:
  *   patch:
  *     tags: [Admin]

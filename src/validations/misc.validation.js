@@ -2,8 +2,17 @@
 
 const { z, objectId, idParam, pagination, bdMobile } = require('./common.validation');
 const {
-  SUBSCRIPTION_PLANS, PAYMENT_METHODS, REPORT_STATUS, ROLES,
+  SUBSCRIPTION_PLANS, PAYMENT_METHODS, REPORT_STATUS, ROLES, ACCOUNT_STATUS, GENDER,
 } = require('../constants');
+
+// Shared strong-password rule (min 8, with upper, lower and a number).
+const passwordRule = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(128)
+  .regex(/[a-z]/, 'Must include a lowercase letter')
+  .regex(/[A-Z]/, 'Must include an uppercase letter')
+  .regex(/\d/, 'Must include a number');
 
 const savedSearch = {
   create: {
@@ -83,14 +92,26 @@ const user = {
       fullName: z.string().min(2).max(120),
       mobile: bdMobile,
       email: z.string().email().optional(),
-      password: z
-        .string()
-        .min(8, 'Password must be at least 8 characters')
-        .max(128)
-        .regex(/[a-z]/, 'Must include a lowercase letter')
-        .regex(/[A-Z]/, 'Must include an uppercase letter')
-        .regex(/\d/, 'Must include a number'),
+      password: passwordRule,
       role: z.enum(Object.values(ROLES)).optional(),
+    }),
+  },
+  // Admin editing an existing account. Every field is optional; password is
+  // only changed when a non-empty value is supplied.
+  update: {
+    params: idParam,
+    body: z.object({
+      fullName: z.string().min(2).max(120).optional(),
+      mobile: bdMobile.optional(),
+      email: z.string().email().optional(),
+      password: passwordRule.optional(),
+      role: z.enum(Object.values(ROLES)).optional(),
+      status: z.enum(Object.values(ACCOUNT_STATUS)).optional(),
+      isLandlordVerified: z.boolean().optional(),
+      occupation: z.string().max(100).optional(),
+      address: z.string().max(300).optional(),
+      gender: z.enum(Object.values(GENDER)).optional(),
+      dateOfBirth: z.coerce.date().optional(),
     }),
   },
 };

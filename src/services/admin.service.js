@@ -135,6 +135,53 @@ class AdminService {
     return created;
   }
 
+  /**
+   * Admin edit of any account field, including password. Guards:
+   *  - cannot modify an account at or above your own rank (your own is fine);
+   *  - cannot assign a role at or above your own rank.
+   */
+  async updateUser(targetId, data, actor) {
+    const target = await User.findById(targetId);
+    if (!target) throw ApiError.notFound('User not found');
+
+    const isSelf = String(target._id) === String(actor._id);
+    if (!isSelf && roleRank(target.role) >= roleRank(actor.role)) {
+      throw ApiError.forbidden('You cannot modify an account at or above your role');
+    }
+
+    if (data.role && data.role !== target.role) {
+      if (roleRank(data.role) >= roleRank(actor.role)) {
+        throw ApiError.forbidden('Cannot assign a role equal to or above your own');
+      }
+      target.role = data.role;
+    }
+
+    if (data.mobile && data.mobile !== target.mobile) {
+      if (await User.findOne({ mobile: data.mobile, _id: { $ne: target._id } })) {
+        throw ApiError.conflict('A user with this mobile already exists', { code: 'MOBILE_TAKEN' });
+      }
+      target.mobile = data.mobile;
+    }
+    if (data.email && data.email.toLowerCase() !== target.email) {
+      if (await User.findOne({ email: data.email.toLowerCase(), _id: { $ne: target._id } })) {
+        throw ApiError.conflict('A user with this email already exists', { code: 'EMAIL_TAKEN' });
+      }
+      target.email = data.email;
+    }
+
+    const direct = ['fullName', 'status', 'isLandlordVerified', 'occupation', 'address', 'gender', 'dateOfBirth'];
+    for (const f of direct) if (data[f] !== undefined) target[f] = data[f];
+
+    // Changing the password invalidates existing refresh tokens.
+    if (data.password) {
+      target.password = data.password; // hashed by the model's pre-save hook
+      target.tokenVersion += 1;
+    }
+
+    await target.save();
+    return target;
+  }
+
   setStatus(userId, status) {
     return User.findByIdAndUpdate(userId, { status }, { new: true });
   }
