@@ -36,6 +36,10 @@ const detailsSchema = z
     parkingAvailable: boolish.optional(),
     liftAvailable: boolish.optional(),
     generatorAvailable: boolish.optional(),
+    airConditioning: boolish.optional(),
+    gym: boolish.optional(),
+    swimmingPool: boolish.optional(),
+    petFriendly: boolish.optional(),
     furnishedStatus: z.enum(Object.values(FURNISHED_STATUS)).optional(),
   })
   .optional();
@@ -48,6 +52,17 @@ const utilitiesSchema = z
     internet: boolish.optional(),
     securityGuard: boolish.optional(),
     cctv: boolish.optional(),
+  })
+  .optional();
+
+const occupancySchema = z
+  .object({
+    familyOnly: boolish.optional(),
+    bachelorAllowed: boolish.optional(),
+    femaleOnly: boolish.optional(),
+    maleOnly: boolish.optional(),
+    smokingAllowed: boolish.optional(),
+    petsAllowed: boolish.optional(),
   })
   .optional();
 
@@ -72,6 +87,7 @@ const create = {
     availableFrom: z.coerce.date().optional(),
     details: jsonObject(detailsSchema),
     utilities: jsonObject(utilitiesSchema),
+    occupancy: jsonObject(occupancySchema),
     location: jsonObject(locationSchema),
     latitude: z.coerce.number().min(-90).max(90).optional(),
     longitude: z.coerce.number().min(-180).max(180).optional(),

@@ -37,6 +37,10 @@ const listingSchema = new Schema(
       parkingAvailable: { type: Boolean, default: false },
       liftAvailable: { type: Boolean, default: false },
       generatorAvailable: { type: Boolean, default: false },
+      airConditioning: { type: Boolean, default: false },
+      gym: { type: Boolean, default: false },
+      swimmingPool: { type: Boolean, default: false },
+      petFriendly: { type: Boolean, default: false },
       furnishedStatus: {
         type: String,
         enum: Object.values(FURNISHED_STATUS),
@@ -52,6 +56,17 @@ const listingSchema = new Schema(
       internet: { type: Boolean, default: false },
       securityGuard: { type: Boolean, default: false },
       cctv: { type: Boolean, default: false },
+    },
+
+    // Occupancy / tenant preferences. Primarily relevant for shared housing
+    // (type === 'mess'); the listing form only surfaces these for that type.
+    occupancy: {
+      familyOnly: { type: Boolean, default: false },
+      bachelorAllowed: { type: Boolean, default: false },
+      femaleOnly: { type: Boolean, default: false },
+      maleOnly: { type: Boolean, default: false },
+      smokingAllowed: { type: Boolean, default: false },
+      petsAllowed: { type: Boolean, default: false },
     },
 
     // Location (Bangladesh hierarchy)
