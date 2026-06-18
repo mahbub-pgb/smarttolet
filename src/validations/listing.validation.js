@@ -52,12 +52,13 @@ const utilitiesSchema = z
   .optional();
 
 const locationSchema = z.object({
-  division: z.string().min(1),
-  district: z.string().min(1),
+  division: z.string().optional(),
+  district: z.string().optional(),
   upazila: z.string().optional(),
   area: z.string().optional(),
   road: z.string().optional(),
   houseNumber: z.string().optional(),
+  formattedAddress: z.string().optional(),
 });
 
 const create = {

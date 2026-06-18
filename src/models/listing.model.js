@@ -55,13 +55,17 @@ const listingSchema = new Schema(
     },
 
     // Location (Bangladesh hierarchy)
+    // Location is captured from a map pin; the hierarchy fields are filled by
+    // reverse geocoding when available (kept for search/filtering) and are
+    // therefore optional. `formattedAddress` is the human-readable label.
     location: {
-      division: { type: String, required: true, trim: true, index: true },
-      district: { type: String, required: true, trim: true, index: true },
+      division: { type: String, trim: true, index: true },
+      district: { type: String, trim: true, index: true },
       upazila: { type: String, trim: true },
       area: { type: String, trim: true, index: true },
       road: { type: String, trim: true },
       houseNumber: { type: String, trim: true },
+      formattedAddress: { type: String, trim: true },
     },
     // No default on `type`: a half-formed { type: 'Point' } without coordinates
     // breaks the 2dsphere index. Set together with coordinates when geo-tagged.
