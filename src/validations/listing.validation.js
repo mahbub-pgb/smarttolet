@@ -2,7 +2,7 @@
 
 const { z, objectId, idParam, pagination } = require('./common.validation');
 const {
-  LISTING_TYPES, LISTING_STATUS, FURNISHED_STATUS, REPORT_REASONS,
+  LISTING_TYPES, LISTING_STATUS, REPORT_REASONS,
 } = require('../constants');
 
 // multipart/form-data sends everything as strings; coerce booleans/numbers.
@@ -40,7 +40,6 @@ const detailsSchema = z
     gym: boolish.optional(),
     swimmingPool: boolish.optional(),
     petFriendly: boolish.optional(),
-    furnishedStatus: z.enum(Object.values(FURNISHED_STATUS)).optional(),
   })
   .optional();
 
@@ -141,7 +140,6 @@ const search = {
     bedrooms: z.coerce.number().optional(),
     bathrooms: z.coerce.number().optional(),
     balconies: z.coerce.number().optional(),
-    furnishedStatus: z.enum(Object.values(FURNISHED_STATUS)).optional(),
     lat: z.coerce.number().optional(),
     lng: z.coerce.number().optional(),
     radiusKm: z.coerce.number().optional(),
@@ -162,7 +160,6 @@ const mapQuery = {
     bedrooms: z.coerce.number().optional(),
     bathrooms: z.coerce.number().optional(),
     balconies: z.coerce.number().optional(),
-    furnishedStatus: z.enum(Object.values(FURNISHED_STATUS)).optional(),
     limit: z.coerce.number().int().min(1).max(2000).optional(),
     ...amenityFilters,
   }),

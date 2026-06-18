@@ -180,7 +180,7 @@ class ListingService {
   async search(query) {
     const {
       keyword, type, division, district, upazila, area,
-      minRent, maxRent, bedrooms, bathrooms, balconies, furnishedStatus,
+      minRent, maxRent, bedrooms, bathrooms, balconies,
       lat, lng, radiusKm,
       page = 1, limit = 20, sort = 'newest',
     } = query;
@@ -191,7 +191,6 @@ class ListingService {
     if (district) filter['location.district'] = district;
     if (upazila) filter['location.upazila'] = upazila;
     if (area) filter['location.area'] = area;
-    if (furnishedStatus) filter['details.furnishedStatus'] = furnishedStatus;
     if (bedrooms) filter['details.bedrooms'] = { $gte: Number(bedrooms) };
     if (bathrooms) filter['details.bathrooms'] = { $gte: Number(bathrooms) };
     if (balconies) filter['details.balconies'] = { $gte: Number(balconies) };
@@ -231,7 +230,7 @@ class ListingService {
   async mapPoints(query = {}) {
     const {
       keyword, type, division, district, area,
-      minRent, maxRent, bedrooms, bathrooms, balconies, furnishedStatus, limit = 1000,
+      minRent, maxRent, bedrooms, bathrooms, balconies, limit = 1000,
     } = query;
 
     const filter = {
@@ -242,7 +241,6 @@ class ListingService {
     if (division) filter['location.division'] = division;
     if (district) filter['location.district'] = district;
     if (area) filter['location.area'] = area;
-    if (furnishedStatus) filter['details.furnishedStatus'] = furnishedStatus;
     if (bedrooms) filter['details.bedrooms'] = { $gte: Number(bedrooms) };
     if (bathrooms) filter['details.bathrooms'] = { $gte: Number(bathrooms) };
     if (balconies) filter['details.balconies'] = { $gte: Number(balconies) };

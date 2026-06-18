@@ -17,7 +17,6 @@ const savedSearchSchema = new Schema(
       minRent: Number,
       maxRent: Number,
       bedrooms: Number,
-      furnishedStatus: String,
       keyword: String,
     },
     // Whether to alert the user when new matching listings appear.

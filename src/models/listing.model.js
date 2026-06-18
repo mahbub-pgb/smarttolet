@@ -4,7 +4,6 @@ const mongoose = require('mongoose');
 const {
   LISTING_TYPES,
   LISTING_STATUS,
-  FURNISHED_STATUS,
 } = require('../constants');
 
 const { Schema } = mongoose;
@@ -41,11 +40,6 @@ const listingSchema = new Schema(
       gym: { type: Boolean, default: false },
       swimmingPool: { type: Boolean, default: false },
       petFriendly: { type: Boolean, default: false },
-      furnishedStatus: {
-        type: String,
-        enum: Object.values(FURNISHED_STATUS),
-        default: FURNISHED_STATUS.UNFURNISHED,
-      },
     },
 
     // Utilities

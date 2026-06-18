@@ -28,12 +28,6 @@ const LISTING_TYPES = Object.freeze([
   'commercial_space',
 ]);
 
-const FURNISHED_STATUS = Object.freeze({
-  FURNISHED: 'furnished',
-  SEMI_FURNISHED: 'semi_furnished',
-  UNFURNISHED: 'unfurnished',
-});
-
 const LISTING_STATUS = Object.freeze({
   DRAFT: 'draft',
   PENDING: 'pending',
@@ -112,7 +106,6 @@ module.exports = {
   ACCOUNT_STATUS,
   GENDER,
   LISTING_TYPES,
-  FURNISHED_STATUS,
   LISTING_STATUS,
   REPORT_REASONS,
   REPORT_STATUS,

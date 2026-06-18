@@ -11,7 +11,7 @@ const mongoose = require('mongoose');
 const { connectDB, disconnectDB } = require('../config/db');
 const { User, Listing } = require('../models');
 const {
-  LISTING_TYPES, LISTING_STATUS, FURNISHED_STATUS, ROLES, ACCOUNT_STATUS,
+  LISTING_TYPES, LISTING_STATUS, ROLES, ACCOUNT_STATUS,
 } = require('../constants');
 const { coordsFor } = require('./bdCoords');
 const logger = require('../config/logger');
@@ -31,7 +31,6 @@ const PLACES = [
 ];
 
 const ADJECTIVES = ['Cozy', 'Spacious', 'Modern', 'Affordable', 'Luxury', 'Bright', 'Quiet', 'Family-friendly'];
-const FURNISHED = Object.values(FURNISHED_STATUS);
 
 const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -93,7 +92,6 @@ function makeListing(ownerId, i, used) {
       bedrooms,
       bathrooms: randInt(1, 4),
       areaSqft: randInt(400, 2500),
-      furnishedStatus: rand(FURNISHED),
     },
     location: { division: place.division, district: place.district, area },
     geo: { type: 'Point', coordinates: coordsFor({ area, district: place.district }) },
