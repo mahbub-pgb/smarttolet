@@ -38,6 +38,28 @@ function applyAmenityFilters(filter, query) {
   });
 }
 
+// Escape regex metacharacters so user input is matched literally.
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Apply a keyword search to the filter. Uses a case-insensitive regex across
+ * the key fields so partial/prefix matches work (e.g. "veri" matches
+ * "Veritatis nisi") — MongoDB's $text index only matches whole words.
+ */
+function applyKeyword(filter, keyword) {
+  const kw = String(keyword || '').trim();
+  if (!kw) return;
+  const rx = new RegExp(escapeRegex(kw), 'i');
+  filter.$or = [
+    { title: rx },
+    { description: rx },
+    { 'location.area': rx },
+    { 'location.district': rx },
+  ];
+}
+
 class ListingService {
   /** Active listing count counts everything except draft/expired/rejected. */
   async assertWithinPlanLimit(userId) {
@@ -164,7 +186,7 @@ class ListingService {
       if (minRent) filter.monthlyRent.$gte = Number(minRent);
       if (maxRent) filter.monthlyRent.$lte = Number(maxRent);
     }
-    if (keyword) filter.$text = { $search: keyword };
+    applyKeyword(filter, keyword);
     if (lat && lng) {
       filter.geo = {
         $near: {
@@ -215,7 +237,7 @@ class ListingService {
       if (minRent) filter.monthlyRent.$gte = Number(minRent);
       if (maxRent) filter.monthlyRent.$lte = Number(maxRent);
     }
-    if (keyword) filter.$text = { $search: keyword };
+    applyKeyword(filter, keyword);
 
     return listingRepository.find(filter, {
       projection: 'title slug type monthlyRent location geo images',
