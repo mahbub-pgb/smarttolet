@@ -8,18 +8,111 @@ const { authenticate, optionalAuth } = require('../middlewares/auth.middleware')
 const { uploadListingImages } = require('../middlewares/upload.middleware');
 const v = require('../validations/listing.validation');
 
-// Public browse/search
+/**
+ * @openapi
+ * /listings:
+ *   get:
+ *     tags: [Listings]
+ *     summary: Browse and search listings
+ *     security: []
+ *     parameters:
+ *       - { in: query, name: q, schema: { type: string }, description: Free-text search }
+ *       - { in: query, name: page, schema: { type: integer, default: 1 } }
+ *       - { in: query, name: limit, schema: { type: integer, default: 20 } }
+ *     responses:
+ *       200: { description: Paginated listings, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *   post:
+ *     tags: [Listings]
+ *     summary: Create a new listing (with images)
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               images: { type: array, items: { type: string, format: binary } }
+ *     responses:
+ *       201: { description: Listing created, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
 router.get('/', validate(v.search), ctrl.search);
+
+/**
+ * @openapi
+ * /listings/{id}:
+ *   get:
+ *     tags: [Listings]
+ *     summary: Get a single listing by id
+ *     security: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Listing, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       404: { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+ *   put:
+ *     tags: [Listings]
+ *     summary: Update a listing you own
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Listing updated, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ *   delete:
+ *     tags: [Listings]
+ *     summary: Delete a listing you own
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Listing deleted, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ */
 router.get('/:id', validate({ params: v.idParam }), optionalAuth, ctrl.getOne);
+
+/**
+ * @openapi
+ * /listings/{id}/nearby:
+ *   get:
+ *     tags: [Listings]
+ *     summary: Get places/listings near a given listing
+ *     security: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Nearby results, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ */
 router.get('/:id/nearby', validate({ params: v.idParam }), ctrl.nearby);
 
-// Owner actions
 router.post('/', authenticate, uploadListingImages, validate(v.create), ctrl.create);
+
+/**
+ * @openapi
+ * /listings/me/list:
+ *   get:
+ *     tags: [Listings]
+ *     summary: List the authenticated owner's listings
+ *     responses:
+ *       200: { description: Owner listings, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
 router.get('/me/list', authenticate, ctrl.mine);
+
 router.put('/:id', authenticate, uploadListingImages, validate(v.update), ctrl.update);
 router.delete('/:id', authenticate, validate({ params: v.idParam }), ctrl.remove);
 
-// Report a listing
+/**
+ * @openapi
+ * /listings/{id}/report:
+ *   post:
+ *     tags: [Listings]
+ *     summary: Report a listing
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       201: { description: Report submitted, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
 router.post('/:id/report', authenticate, validate(v.report), reports.create);
 
 module.exports = router;

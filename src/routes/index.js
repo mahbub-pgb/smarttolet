@@ -2,6 +2,16 @@
 
 const router = require('express').Router();
 
+/**
+ * @openapi
+ * /health:
+ *   get:
+ *     tags: [Public]
+ *     summary: Service health check
+ *     security: []
+ *     responses:
+ *       200: { description: Service is up, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ */
 router.get('/health', (_req, res) =>
   res.json({ success: true, status: 'ok', uptime: process.uptime() }),
 );
