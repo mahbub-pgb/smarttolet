@@ -51,6 +51,7 @@ class SettingsService {
       supportEmail: doc.supportEmail || null,
       supportPhone: doc.supportPhone || null,
       googleMapsApiKey: doc.googleMapsApiKey || config.googleMapsApiKey || null,
+      mapDefaultZoom: doc.mapDefaultZoom ?? 7,
       sms: {
         provider: doc.sms?.provider || config.sms.provider,
         apiKey: doc.sms?.apiKey || config.sms.apiKey || null,
@@ -86,6 +87,7 @@ class SettingsService {
       // Maps key IS exposed publicly — the browser SDK needs it. Restrict it by
       // HTTP referrer in the Google Cloud console rather than hiding it.
       googleMapsApiKey: s.googleMapsApiKey,
+      mapDefaultZoom: s.mapDefaultZoom,
     };
   }
 
@@ -97,6 +99,7 @@ class SettingsService {
       'supportEmail',
       'supportPhone',
       'googleMapsApiKey',
+      'mapDefaultZoom',
       'maintenanceMode',
       'maintenanceMessage',
     ];

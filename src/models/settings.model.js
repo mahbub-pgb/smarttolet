@@ -19,6 +19,8 @@ const settingsSchema = new Schema(
     supportPhone: { type: String },
 
     googleMapsApiKey: { type: String, select: false },
+    // Default zoom level for the public listings map (Google Maps: 1=world … 20=building).
+    mapDefaultZoom: { type: Number, default: 7, min: 1, max: 20 },
 
     sms: {
       provider: { type: String, default: 'mock' },

@@ -53,6 +53,7 @@ const settings = {
       supportEmail: z.string().email().optional(),
       supportPhone: z.string().optional(),
       googleMapsApiKey: z.string().optional(),
+      mapDefaultZoom: z.coerce.number().int().min(1).max(20).optional(),
       maintenanceMode: z.boolean().optional(),
       maintenanceMessage: z.string().optional(),
       sms: z
