@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed:admin": "node src/jobs/seedSuperAdmin.js",
+    "seed:listings": "node src/jobs/seedListings.js",
     "lint": "eslint .",
     "test": "echo \"No tests specified yet\" && exit 0"
   },
