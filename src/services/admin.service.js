@@ -208,6 +208,7 @@ class AdminService {
     return {
       provider: result.provider,
       delivered: result.delivered !== false,
+      reason: result.message || null,
       recipients: unique.length,
       balance,
     };

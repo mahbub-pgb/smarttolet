@@ -18,6 +18,39 @@ const BALANCE_URL = 'http://bulksmsbd.net/api/getBalance';
 const fmt = (n) => String(n).replace(/^\+/, '');
 const isAccepted = (data) => Number(data?.response_code) === 202;
 
+// Gateway response_code -> human-readable meaning (per BulkSMSBD docs).
+const RESPONSE_CODES = {
+  202: 'SMS submitted successfully',
+  1001: 'Invalid number',
+  1002: 'Sender ID is not correct or is disabled',
+  1003: 'Required fields missing — contact your system administrator',
+  1005: 'Internal gateway error',
+  1006: 'Balance validity not available',
+  1007: 'Insufficient balance',
+  1011: 'User ID not found',
+  1012: 'Masking SMS must be sent in Bengali',
+  1013: 'Sender ID has no gateway for this API key',
+  1014: 'Sender type name not found for this sender/API key',
+  1015: 'Sender ID has no valid gateway for this API key',
+  1016: 'Sender type active price info not found for this sender ID',
+  1017: 'Sender type price info not found for this sender ID',
+  1018: 'The owner of this account is disabled',
+  1019: 'The price of this account is disabled',
+  1020: 'The parent of this account was not found',
+  1021: 'The parent active price of this account was not found',
+  1031: 'Account not verified — contact administrator',
+  1032: 'IP not whitelisted for this API key',
+};
+
+/** Map a gateway payload to { code, message }. */
+function describe(data) {
+  const code = Number(data?.response_code);
+  if (Number.isFinite(code)) {
+    return { code, message: RESPONSE_CODES[code] || `Gateway returned code ${code}` };
+  }
+  return { code: null, message: data?.error || 'Unknown gateway response' };
+}
+
 async function post(url, body) {
   try {
     const res = await fetch(url, {
@@ -48,8 +81,9 @@ async function send({ apiKey, senderId, to, message }) {
     message,
   });
   const delivered = isAccepted(data);
-  if (!delivered) logger.warn(`[SMS:bulksmsbd] not accepted: ${JSON.stringify(data)}`);
-  return { provider: 'bulksmsbd', delivered, response: data };
+  const { code, message: reason } = describe(data);
+  if (!delivered) logger.warn(`[SMS:bulksmsbd] not accepted (${code}): ${reason}`);
+  return { provider: 'bulksmsbd', delivered, code, message: reason, response: data };
 }
 
 /** Send different messages to different recipients in one call. */
@@ -60,8 +94,9 @@ async function sendMany({ apiKey, senderId, messages }) {
     messages: messages.map((m) => ({ to: fmt(m.to), message: m.message })),
   });
   const delivered = isAccepted(data);
-  if (!delivered) logger.warn(`[SMS:bulksmsbd many] not accepted: ${JSON.stringify(data)}`);
-  return { provider: 'bulksmsbd', delivered, response: data };
+  const { code, message: reason } = describe(data);
+  if (!delivered) logger.warn(`[SMS:bulksmsbd many] not accepted (${code}): ${reason}`);
+  return { provider: 'bulksmsbd', delivered, code, message: reason, response: data };
 }
 
 /** Query the remaining account balance. Returns { balance: Number|null }. */

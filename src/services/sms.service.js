@@ -16,14 +16,18 @@ async function sendSms(to, message) {
     case 'bulksmsbd':
       if (!sms.apiKey || !sms.senderId) {
         logger.error('[SMS] bulksmsbd selected but API key / sender id is not configured');
-        return { provider: 'bulksmsbd', delivered: false };
+        return {
+          provider: 'bulksmsbd',
+          delivered: false,
+          message: 'SMS gateway is not configured (missing API key or sender ID)',
+        };
       }
       return bulksmsbd.send({ apiKey: sms.apiKey, senderId: sms.senderId, to, message });
 
     case 'mock':
     default:
       logger.info(`[SMS:mock -> ${to}] ${message}`);
-      return { provider: 'mock', delivered: true };
+      return { provider: 'mock', delivered: true, message: 'Logged (mock provider)' };
   }
 }
 
