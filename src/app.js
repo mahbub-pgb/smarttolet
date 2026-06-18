@@ -25,9 +25,18 @@ app.set('trust proxy', 1); // correct client IPs behind a reverse proxy
 
 // ---- Security & parsing ----
 app.use(helmet());
+// In development allow any localhost origin (the client + admin run on
+// different Vite ports); in production only the configured client URL(s).
+const allowedOrigins = config.clientUrl.split(',').map((o) => o.trim());
 app.use(
   cors({
-    origin: config.clientUrl,
+    origin(origin, cb) {
+      if (!origin) return cb(null, true); // same-origin / curl / mobile apps
+      if (!config.isProd && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+        return cb(null, true);
+      }
+      return cb(null, allowedOrigins.includes(origin));
+    },
     credentials: true,
   }),
 );

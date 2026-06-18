@@ -36,6 +36,8 @@ const config = {
     maxAttempts: Number(process.env.OTP_MAX_ATTEMPTS || 5),
     // Min seconds between OTP requests for the same number.
     resendCooldownSeconds: 60,
+    // Fixed code used in non-production so testing needs no live SMS gateway.
+    testCode: process.env.OTP_TEST_CODE || '123456',
   },
 
   bcryptRounds: Number(process.env.BCRYPT_SALT_ROUNDS || 12),

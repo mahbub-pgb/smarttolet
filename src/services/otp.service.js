@@ -29,7 +29,9 @@ class OtpService {
       });
     }
 
-    const otp = generateOtp();
+    // In non-production we use a fixed, predictable code so testers don't need a
+    // live SMS gateway. Production always uses a cryptographically-random OTP.
+    const otp = config.isProd ? generateOtp() : config.otp.testCode;
     const payload = JSON.stringify({ hash: hashOtp(otp), attempts: 0 });
 
     await redis

@@ -11,6 +11,20 @@ const boolish = z.preprocess((v) => {
   return v;
 }, z.boolean());
 
+// multipart/form-data cannot carry nested objects, so the client sends them as
+// JSON strings. Parse those back into objects before the object schema runs.
+const jsonObject = (schema) =>
+  z.preprocess((v) => {
+    if (typeof v === 'string') {
+      try {
+        return JSON.parse(v);
+      } catch {
+        return v;
+      }
+    }
+    return v;
+  }, schema);
+
 const detailsSchema = z
   .object({
     bedrooms: z.coerce.number().int().min(0).optional(),
@@ -55,20 +69,22 @@ const create = {
     advanceAmount: z.coerce.number().min(0).optional(),
     serviceCharge: z.coerce.number().min(0).optional(),
     availableFrom: z.coerce.date().optional(),
-    details: detailsSchema,
-    utilities: utilitiesSchema,
-    location: locationSchema,
+    details: jsonObject(detailsSchema),
+    utilities: jsonObject(utilitiesSchema),
+    location: jsonObject(locationSchema),
     latitude: z.coerce.number().min(-90).max(90).optional(),
     longitude: z.coerce.number().min(-180).max(180).optional(),
     videoTourUrl: z.string().url().optional(),
     tour360Url: z.string().url().optional(),
-    contact: z
-      .object({
-        person: z.string().optional(),
-        phone: z.string().optional(),
-        whatsapp: z.string().optional(),
-      })
-      .optional(),
+    contact: jsonObject(
+      z
+        .object({
+          person: z.string().optional(),
+          phone: z.string().optional(),
+          whatsapp: z.string().optional(),
+        })
+        .optional(),
+    ),
     status: z.enum([LISTING_STATUS.DRAFT, LISTING_STATUS.PENDING]).optional(),
   }),
 };
