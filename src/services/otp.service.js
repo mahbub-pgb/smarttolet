@@ -5,7 +5,6 @@ const config = require('../config');
 const ApiError = require('../utils/ApiError');
 const { generateOtp, hashOtp, verifyOtpHash } = require('../utils/otp');
 const { sendSms } = require('./sms.service');
-const logger = require('../config/logger');
 
 const otpKey = (purpose, identifier) => `otp:${purpose}:${identifier}`;
 const cooldownKey = (purpose, identifier) => `otp:cd:${purpose}:${identifier}`;
@@ -29,9 +28,9 @@ class OtpService {
       });
     }
 
-    // In non-production we use a fixed, predictable code so testers don't need a
-    // live SMS gateway. Production always uses a cryptographically-random OTP.
-    const otp = config.isProd ? generateOtp() : config.otp.testCode;
+    // Always a cryptographically-random code, delivered only via SMS — never
+    // returned to the client.
+    const otp = generateOtp();
     const payload = JSON.stringify({ hash: hashOtp(otp), attempts: 0 });
 
     await redis
@@ -44,11 +43,7 @@ class OtpService {
       config.otp.expirySeconds / 60
     } minutes.`);
 
-    // Surface OTP in dev so testing doesn't require a real SMS gateway.
-    const debug = config.isProd ? undefined : otp;
-    if (debug) logger.debug(`[OTP] ${purpose} ${identifier} => ${otp}`);
-
-    return { expiresIn: config.otp.expirySeconds, devOtp: debug };
+    return { expiresIn: config.otp.expirySeconds };
   }
 
   /**
