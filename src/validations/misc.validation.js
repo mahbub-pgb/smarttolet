@@ -69,6 +69,7 @@ const settings = {
         .array(z.object({ title: z.string().min(1).max(120), message: z.string().min(1).max(1000) }))
         .max(50)
         .optional(),
+      promoCooldownDays: z.coerce.number().int().min(0).max(3650).optional(),
       listingExpiry: z
         .object({
           value: z.coerce.number().int().min(0).max(3650),
@@ -129,6 +130,7 @@ const sms = {
     body: z.object({
       numbers: z.array(bdMobile).min(1, 'Add at least one number').max(1000),
       message: z.string().min(1, 'Message is required').max(1000),
+      title: z.string().max(120).optional(),
     }),
   },
 };

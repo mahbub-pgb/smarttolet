@@ -241,6 +241,18 @@ router.post(
 
 /**
  * @openapi
+ * /admin/sms/promotions:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Promotional SMS send history (report)
+ *     responses:
+ *       200: { description: History, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ */
+router.get('/sms/promotions', requirePermission(PERMISSIONS.MANAGE_SETTINGS), ctrl.promotionLog);
+
+/**
+ * @openapi
  * /admin/settings:
  *   get:
  *     tags: [Admin]

@@ -57,6 +57,9 @@ const settingsSchema = new Schema(
       type: [{ title: String, message: String, _id: false }],
       default: [],
     },
+    // Cooldown (days) before the same number can receive another promo SMS.
+    // 0 disables the cooldown (always allowed).
+    promoCooldownDays: { type: Number, default: 30, min: 0 },
 
     maintenanceMode: { type: Boolean, default: false },
     maintenanceMessage: { type: String },

@@ -13,4 +13,5 @@ module.exports = {
   Payment: require('./payment.model'),
   Advertisement: require('./advertisement.model'),
   Settings: require('./settings.model'),
+  PromoSms: require('./promoSms.model'),
 };

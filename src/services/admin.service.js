@@ -1,7 +1,7 @@
 'use strict';
 
 const {
-  User, Listing, Subscription, Payment,
+  User, Listing, Subscription, Payment, PromoSms,
 } = require('../models');
 const {
   ROLES, LISTING_STATUS, SUBSCRIPTION_STATUS, PAYMENT_STATUS, ACCOUNT_STATUS,
@@ -198,10 +198,11 @@ class AdminService {
   }
 
   /**
-   * Broadcast a promotional SMS to one or more numbers, then report the
-   * remaining balance. Numbers are de-duplicated to avoid double charges.
+   * Broadcast a promotional SMS. Numbers are de-duplicated, registered users
+   * are rejected, and numbers messaged within the cooldown window are skipped.
+   * Each recipient is logged for the report. Returns a send summary.
    */
-  async sendPromotion(numbers, message) {
+  async sendPromotion(numbers, message, actorId, title) {
     const unique = [...new Set(numbers)];
 
     // Promotions target non-users only. If any number already belongs to a
@@ -215,15 +216,73 @@ class AdminService {
       );
     }
 
-    const result = await smsService.sendSms(unique, message);
+    // Skip numbers already messaged within the cooldown window. A missing
+    // value (e.g. from an older cached settings object) falls back to the
+    // 30-day default; only an explicit 0 disables the cooldown.
+    const settings = await settingsService.get();
+    const cooldownDays = settings.promoCooldownDays ?? 30;
+    let toSend = unique;
+    let skipped = [];
+    if (cooldownDays > 0) {
+      const since = new Date(Date.now() - cooldownDays * 24 * 60 * 60 * 1000);
+      const recent = await PromoSms.find({
+        mobile: { $in: unique },
+        status: 'sent',
+        createdAt: { $gte: since },
+      }).select('mobile');
+      const recentSet = new Set(recent.map((r) => r.mobile));
+      skipped = unique.filter((n) => recentSet.has(n));
+      toSend = unique.filter((n) => !recentSet.has(n));
+    }
+
+    if (!toSend.length) {
+      const { balance } = await smsService.getBalance().catch(() => ({ balance: null }));
+      return {
+        provider: null,
+        delivered: false,
+        reason: `All ${skipped.length} number(s) were already messaged within the last ${cooldownDays} day(s).`,
+        recipients: 0,
+        skipped: skipped.length,
+        balance,
+      };
+    }
+
+    const result = await smsService.sendSms(toSend, message);
+    const status = result.delivered !== false ? 'sent' : 'failed';
+
+    await PromoSms.insertMany(
+      toSend.map((mobile) => ({
+        mobile,
+        title: title || undefined,
+        message,
+        status,
+        reason: status === 'failed' ? result.message || null : undefined,
+        sentBy: actorId,
+      })),
+    );
+
     const { balance } = await smsService.getBalance().catch(() => ({ balance: null }));
     return {
       provider: result.provider,
-      delivered: result.delivered !== false,
+      delivered: status === 'sent',
       reason: result.message || null,
-      recipients: unique.length,
+      recipients: toSend.length,
+      skipped: skipped.length,
       balance,
     };
+  }
+
+  /** Paginated promotional-SMS history for the report view. */
+  promotionLog({ page = 1, limit = 20 } = {}) {
+    const skip = (Number(page) - 1) * Number(limit);
+    return Promise.all([
+      PromoSms.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .populate('sentBy', 'fullName mobile'),
+      PromoSms.countDocuments(),
+    ]).then(([items, total]) => ({ items, total }));
   }
 
   /** Send the new password to the user by SMS when the admin enabled it. */

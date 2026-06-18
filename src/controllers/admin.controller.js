@@ -81,8 +81,18 @@ exports.smsBalance = asyncHandler(async (req, res) => {
 });
 
 exports.sendPromotion = asyncHandler(async (req, res) => {
-  const result = await adminService.sendPromotion(req.body.numbers, req.body.message);
+  const result = await adminService.sendPromotion(
+    req.body.numbers,
+    req.body.message,
+    req.user._id,
+    req.body.title,
+  );
   sendSuccess(res, { message: 'Promotional SMS sent', data: result });
+});
+
+exports.promotionLog = asyncHandler(async (req, res) => {
+  const { items, total } = await adminService.promotionLog(req.query);
+  sendSuccess(res, { data: { items }, meta: meta(req, total) });
 });
 
 // ---- Settings ----

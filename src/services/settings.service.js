@@ -73,6 +73,7 @@ class SettingsService {
         unit: doc.listingExpiry?.unit || 'days',
       },
       promoMessages: (doc.promoMessages || []).map((m) => ({ title: m.title, message: m.message })),
+      promoCooldownDays: doc.promoCooldownDays ?? 30,
       maintenanceMode: !!doc.maintenanceMode,
       maintenanceMessage: doc.maintenanceMessage || null,
     };
@@ -112,6 +113,7 @@ class SettingsService {
       'googleMapsApiKey',
       'mapDefaultZoom',
       'promoMessages',
+      'promoCooldownDays',
       'maintenanceMode',
       'maintenanceMessage',
     ];
