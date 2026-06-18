@@ -34,6 +34,13 @@ const settingsSchema = new Schema(
       apiSecret: { type: String, select: false },
     },
 
+    // How long an approved listing stays active before it is automatically
+    // deactivated (status -> expired). value 0 means "never expire".
+    listingExpiry: {
+      value: { type: Number, default: 30, min: 0 },
+      unit: { type: String, enum: ['days', 'months'], default: 'days' },
+    },
+
     maintenanceMode: { type: Boolean, default: false },
     maintenanceMessage: { type: String },
 

@@ -54,6 +54,13 @@ const settings = {
       supportPhone: z.string().optional(),
       googleMapsApiKey: z.string().optional(),
       mapDefaultZoom: z.coerce.number().int().min(1).max(20).optional(),
+      listingExpiry: z
+        .object({
+          value: z.coerce.number().int().min(0).max(3650),
+          unit: z.enum(['days', 'months']),
+        })
+        .partial()
+        .optional(),
       maintenanceMode: z.boolean().optional(),
       maintenanceMessage: z.string().optional(),
       sms: z

@@ -62,6 +62,10 @@ class SettingsService {
         apiKey: doc.cloudinary?.apiKey || config.cloudinary.apiKey || null,
         apiSecret: doc.cloudinary?.apiSecret || config.cloudinary.apiSecret || null,
       },
+      listingExpiry: {
+        value: doc.listingExpiry?.value ?? 30,
+        unit: doc.listingExpiry?.unit || 'days',
+      },
       maintenanceMode: !!doc.maintenanceMode,
       maintenanceMessage: doc.maintenanceMessage || null,
     };
@@ -105,6 +109,9 @@ class SettingsService {
     ];
     for (const key of assignable) {
       if (patch[key] !== undefined) doc[key] = patch[key];
+    }
+    if (patch.listingExpiry) {
+      doc.listingExpiry = { ...doc.listingExpiry?.toObject?.(), ...patch.listingExpiry };
     }
     if (patch.sms) doc.sms = { ...doc.sms?.toObject?.(), ...patch.sms };
     if (patch.cloudinary) {

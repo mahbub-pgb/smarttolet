@@ -3,6 +3,7 @@
 const { listingRepository, subscriptionRepository } = require('../repositories');
 const cloudinaryService = require('./cloudinary.service');
 const notificationService = require('./notification.service');
+const settingsService = require('./settings.service');
 const ApiError = require('../utils/ApiError');
 const {
   LISTING_STATUS,
@@ -264,6 +265,20 @@ class ListingService {
 
   // ---- Moderation ----
 
+  /**
+   * Compute when a freshly-approved listing should expire, based on the
+   * admin-configured listingExpiry setting. Returns undefined (never expire)
+   * when the configured value is 0.
+   */
+  async computeExpiry(from = new Date()) {
+    const { value, unit } = (await settingsService.get()).listingExpiry || {};
+    if (!value || value <= 0) return undefined;
+    const expiry = new Date(from);
+    if (unit === 'months') expiry.setMonth(expiry.getMonth() + value);
+    else expiry.setDate(expiry.getDate() + value);
+    return expiry;
+  }
+
   async moderate(id, moderatorId, { approve, reason }) {
     const listing = await listingRepository.findById(id);
     if (!listing) throw ApiError.notFound('Listing not found');
@@ -272,7 +287,9 @@ class ListingService {
     listing.reviewedBy = moderatorId;
     listing.reviewedAt = new Date();
     if (!approve) listing.rejectionReason = reason;
-    if (approve) listing.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    // On approval the listing stays active for the admin-configured duration,
+    // after which the hourly expireListings job deactivates it. 0 = never.
+    if (approve) listing.expiresAt = await this.computeExpiry();
     await listing.save();
 
     await notificationService.notify(listing.owner, {
