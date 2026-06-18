@@ -120,6 +120,15 @@ const user = {
   },
 };
 
+const sms = {
+  promotion: {
+    body: z.object({
+      numbers: z.array(bdMobile).min(1, 'Add at least one number').max(1000),
+      message: z.string().min(1, 'Message is required').max(1000),
+    }),
+  },
+};
+
 const report = {
   resolve: {
     params: idParam,
@@ -139,4 +148,4 @@ const nearby = {
   }),
 };
 
-module.exports = { savedSearch, chat, payment, settings, user, report, nearby, pagination, idParam };
+module.exports = { savedSearch, chat, payment, settings, user, sms, report, nearby, pagination, idParam };

@@ -47,4 +47,18 @@ async function sendManySms(messages = []) {
   return { provider: 'mock', delivered: true, count: messages.length };
 }
 
-module.exports = { sendSms, sendManySms };
+/**
+ * Remaining gateway balance. Only meaningful for real providers; the mock
+ * provider returns null (nothing to bill).
+ */
+async function getBalance() {
+  const { sms } = await settingsService.get();
+  if (sms.provider === 'bulksmsbd') {
+    if (!sms.apiKey) return { provider: 'bulksmsbd', balance: null };
+    const { balance } = await bulksmsbd.getBalance({ apiKey: sms.apiKey });
+    return { provider: 'bulksmsbd', balance };
+  }
+  return { provider: 'mock', balance: null };
+}
+
+module.exports = { sendSms, sendManySms, getBalance };

@@ -192,6 +192,27 @@ class AdminService {
     return target;
   }
 
+  /** Remaining SMS gateway balance (null for the mock provider). */
+  smsBalance() {
+    return smsService.getBalance();
+  }
+
+  /**
+   * Broadcast a promotional SMS to one or more numbers, then report the
+   * remaining balance. Numbers are de-duplicated to avoid double charges.
+   */
+  async sendPromotion(numbers, message) {
+    const unique = [...new Set(numbers)];
+    const result = await smsService.sendSms(unique, message);
+    const { balance } = await smsService.getBalance().catch(() => ({ balance: null }));
+    return {
+      provider: result.provider,
+      delivered: result.delivered !== false,
+      recipients: unique.length,
+      balance,
+    };
+  }
+
   /** Send the new password to the user by SMS when the admin enabled it. */
   async notifyPasswordChange(mobile, newPassword) {
     if (!mobile) return;

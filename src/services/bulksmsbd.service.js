@@ -13,6 +13,7 @@ const logger = require('../config/logger');
  */
 const SINGLE_URL = 'http://bulksmsbd.net/api/smsapi';
 const MANY_URL = 'http://bulksmsbd.net/api/smsapimany';
+const BALANCE_URL = 'http://bulksmsbd.net/api/getBalance';
 
 const fmt = (n) => String(n).replace(/^\+/, '');
 const isAccepted = (data) => Number(data?.response_code) === 202;
@@ -63,4 +64,23 @@ async function sendMany({ apiKey, senderId, messages }) {
   return { provider: 'bulksmsbd', delivered, response: data };
 }
 
-module.exports = { send, sendMany };
+/** Query the remaining account balance. Returns { balance: Number|null }. */
+async function getBalance({ apiKey }) {
+  try {
+    const res = await fetch(`${BALANCE_URL}?api_key=${encodeURIComponent(apiKey)}`);
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
+    const balance = data?.balance != null ? Number(data.balance) : null;
+    return { balance: Number.isFinite(balance) ? balance : null, response: data };
+  } catch (err) {
+    logger.error(`[SMS:bulksmsbd] balance request failed: ${err.message}`);
+    return { balance: null, error: err.message };
+  }
+}
+
+module.exports = { send, sendMany, getBalance };

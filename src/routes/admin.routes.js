@@ -212,6 +212,35 @@ router.get('/payments', requirePermission(PERMISSIONS.MANAGE_PAYMENTS), ctrl.lis
 
 /**
  * @openapi
+ * /admin/sms/balance:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Remaining SMS gateway balance
+ *     responses:
+ *       200: { description: Balance, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ */
+router.get('/sms/balance', requirePermission(PERMISSIONS.MANAGE_SETTINGS), ctrl.smsBalance);
+
+/**
+ * @openapi
+ * /admin/sms/promotion:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Send a promotional SMS to one or more numbers
+ *     responses:
+ *       200: { description: Sent, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ */
+router.post(
+  '/sms/promotion',
+  requirePermission(PERMISSIONS.MANAGE_SETTINGS),
+  validate(m.sms.promotion),
+  ctrl.sendPromotion,
+);
+
+/**
+ * @openapi
  * /admin/settings:
  *   get:
  *     tags: [Admin]

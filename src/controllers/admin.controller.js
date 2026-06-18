@@ -74,6 +74,17 @@ exports.listPayments = asyncHandler(async (req, res) => {
   sendSuccess(res, { data: { payments: items }, meta: meta(req, total) });
 });
 
+// ---- Promotional SMS ----
+exports.smsBalance = asyncHandler(async (req, res) => {
+  const data = await adminService.smsBalance();
+  sendSuccess(res, { data });
+});
+
+exports.sendPromotion = asyncHandler(async (req, res) => {
+  const result = await adminService.sendPromotion(req.body.numbers, req.body.message);
+  sendSuccess(res, { message: 'Promotional SMS sent', data: result });
+});
+
 // ---- Settings ----
 exports.getSettings = asyncHandler(async (req, res) => {
   // Admin view excludes raw secrets but indicates which are configured.
