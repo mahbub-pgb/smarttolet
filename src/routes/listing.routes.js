@@ -68,7 +68,8 @@ router.get('/', validate(v.search), ctrl.search);
  *       401: { $ref: '#/components/responses/Unauthorized' }
  *       403: { $ref: '#/components/responses/Forbidden' }
  */
-router.get('/:id', validate({ params: v.idParam }), optionalAuth, ctrl.getOne);
+// Accepts either a Mongo id or a URL slug (resolved in the service).
+router.get('/:id', optionalAuth, ctrl.getOne);
 
 /**
  * @openapi

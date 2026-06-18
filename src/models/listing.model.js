@@ -17,6 +17,9 @@ const listingSchema = new Schema(
 
     // Basic information
     title: { type: String, required: true, trim: true, maxlength: 150 },
+    // URL-friendly identifier derived from the title (+ a short stable suffix
+    // for uniqueness). Used for public listing URLs instead of the raw id.
+    slug: { type: String, index: true },
     description: { type: String, required: true, trim: true, maxlength: 5000 },
     monthlyRent: { type: Number, required: true, min: 0, index: true },
     advanceAmount: { type: Number, min: 0, default: 0 },
@@ -100,6 +103,25 @@ const listingSchema = new Schema(
   },
   { timestamps: true },
 );
+
+/** Turn a title into a URL-safe slug base. */
+function slugifyTitle(title = '') {
+  return String(title)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9ঀ-৿]+/g, '-') // keep latin + Bangla, collapse rest to '-'
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'listing';
+}
+
+// Keep the slug in sync with the title. The 6-char id suffix guarantees
+// uniqueness without a separate DB lookup and keeps the URL stable.
+listingSchema.pre('save', function setSlug(next) {
+  if (this.isModified('title') || !this.slug) {
+    this.slug = `${slugifyTitle(this.title)}-${this._id.toString().slice(-6)}`;
+  }
+  next();
+});
 
 listingSchema.index({ geo: '2dsphere' });
 // Full-text search over the most relevant fields.

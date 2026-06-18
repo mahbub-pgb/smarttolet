@@ -62,12 +62,19 @@ class ListingService {
     return Promise.all(files.map((f) => cloudinaryService.uploadBuffer(f.buffer, { mimetype: f.mimetype })));
   }
 
-  async getById(id, { incrementView = false } = {}) {
-    const listing = await listingRepository.findById(id, undefined, {})
-      .populate('owner', 'fullName profileImage isLandlordVerified mobile');
+  /** Resolve a listing by Mongo id or by URL slug. */
+  async getById(idOrSlug, { incrementView = false } = {}) {
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(idOrSlug);
+    const query = isObjectId
+      ? listingRepository.findById(idOrSlug, undefined, {})
+      : listingRepository.findOne({ slug: idOrSlug });
+    const listing = await query.populate(
+      'owner',
+      'fullName profileImage isLandlordVerified mobile',
+    );
     if (!listing) throw ApiError.notFound('Listing not found');
     if (incrementView) {
-      listingRepository.updateById(id, { $inc: { viewsCount: 1 } }).catch(() => {});
+      listingRepository.updateById(listing._id, { $inc: { viewsCount: 1 } }).catch(() => {});
     }
     return listing;
   }
