@@ -10,6 +10,7 @@ const {
   PLAN_LISTING_LIMITS,
   SUBSCRIPTION_PLANS,
   NOTIFICATION_TYPES,
+  STAFF_ROLES,
 } = require('../constants');
 
 // Maps amenity query-param names to the boolean field path on the document.
@@ -86,22 +87,36 @@ class ListingService {
     return undefined;
   }
 
-  async create(userId, data, files = []) {
-    if (data.status !== LISTING_STATUS.DRAFT) {
+  async create(userId, data, files = [], creatorRole = null) {
+    const isStaff = STAFF_ROLES.includes(creatorRole);
+    const wantsDraft = data.status === LISTING_STATUS.DRAFT;
+    // Only staff may publish directly; a publish request from anyone else
+    // falls back to the normal review queue.
+    const publish = data.status === LISTING_STATUS.APPROVED && isStaff;
+
+    // Staff bypass the plan limit; everyone else is checked unless drafting.
+    if (!wantsDraft && !isStaff) {
       await this.assertWithinPlanLimit(userId);
     }
 
     const images = await this.uploadImages(files);
     const geo = this.buildGeo(data);
 
-    const listing = await listingRepository.create({
-      ...data,
-      owner: userId,
-      geo,
-      images,
-      // New listings (non-draft) go to moderation queue.
-      status: data.status === LISTING_STATUS.DRAFT ? LISTING_STATUS.DRAFT : LISTING_STATUS.PENDING,
-    });
+    // Drafts stay drafts; staff who chose Publish go live; everyone else goes
+    // to the moderation queue.
+    let status = LISTING_STATUS.PENDING;
+    if (wantsDraft) status = LISTING_STATUS.DRAFT;
+    else if (publish) status = LISTING_STATUS.APPROVED;
+
+    const payload = { ...data, owner: userId, geo, images, status };
+    if (status === LISTING_STATUS.APPROVED) {
+      // Mirror the moderation path: set the active period and stamp the review.
+      payload.expiresAt = await this.computeExpiry();
+      payload.reviewedBy = userId;
+      payload.reviewedAt = new Date();
+    }
+
+    const listing = await listingRepository.create(payload);
     return listing;
   }
 

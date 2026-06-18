@@ -6,8 +6,13 @@ const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess, paginate } = require('../utils/ApiResponse');
 
 exports.create = asyncHandler(async (req, res) => {
-  const listing = await listingService.create(req.user._id, req.body, req.files);
-  sendSuccess(res, { statusCode: 201, message: 'Listing submitted', data: { listing } });
+  const listing = await listingService.create(req.user._id, req.body, req.files, req.user.role);
+  const message = listing.status === 'approved'
+    ? 'Listing published'
+    : listing.status === 'draft'
+      ? 'Draft saved'
+      : 'Listing submitted for review';
+  sendSuccess(res, { statusCode: 201, message, data: { listing } });
 });
 
 exports.update = asyncHandler(async (req, res) => {

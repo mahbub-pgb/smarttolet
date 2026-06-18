@@ -108,7 +108,8 @@ const create = {
         })
         .optional(),
     ),
-    status: z.enum([LISTING_STATUS.DRAFT, LISTING_STATUS.PENDING]).optional(),
+    // 'approved' is a publish request, honoured only for staff in the service.
+    status: z.enum([LISTING_STATUS.DRAFT, LISTING_STATUS.PENDING, LISTING_STATUS.APPROVED]).optional(),
   }),
 };
 
