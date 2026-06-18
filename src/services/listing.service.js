@@ -11,6 +11,32 @@ const {
   NOTIFICATION_TYPES,
 } = require('../constants');
 
+// Maps amenity query-param names to the boolean field path on the document.
+// Shared by browse search and the map endpoint.
+const AMENITY_PATHS = {
+  parking: 'details.parkingAvailable',
+  lift: 'details.liftAvailable',
+  generator: 'details.generatorAvailable',
+  ac: 'details.airConditioning',
+  gym: 'details.gym',
+  pool: 'details.swimmingPool',
+  petFriendly: 'details.petFriendly',
+  wifi: 'utilities.internet',
+  gas: 'utilities.gas',
+  security: 'utilities.securityGuard',
+  cctv: 'utilities.cctv',
+};
+
+// Treats both real booleans and the string 'true'/'1' as enabled.
+const isOn = (v) => v === true || v === 'true' || v === '1';
+
+// Add `path: true` to `filter` for every amenity flag that is enabled in query.
+function applyAmenityFilters(filter, query) {
+  Object.entries(AMENITY_PATHS).forEach(([param, path]) => {
+    if (isOn(query[param])) filter[path] = true;
+  });
+}
+
 class ListingService {
   /** Active listing count counts everything except draft/expired/rejected. */
   async assertWithinPlanLimit(userId) {
@@ -116,7 +142,7 @@ class ListingService {
   async search(query) {
     const {
       keyword, type, division, district, upazila, area,
-      minRent, maxRent, bedrooms, furnishedStatus,
+      minRent, maxRent, bedrooms, bathrooms, balconies, furnishedStatus,
       lat, lng, radiusKm,
       page = 1, limit = 20, sort = 'newest',
     } = query;
@@ -129,6 +155,9 @@ class ListingService {
     if (area) filter['location.area'] = area;
     if (furnishedStatus) filter['details.furnishedStatus'] = furnishedStatus;
     if (bedrooms) filter['details.bedrooms'] = { $gte: Number(bedrooms) };
+    if (bathrooms) filter['details.bathrooms'] = { $gte: Number(bathrooms) };
+    if (balconies) filter['details.balconies'] = { $gte: Number(balconies) };
+    applyAmenityFilters(filter, query);
     if (minRent || maxRent) {
       filter.monthlyRent = {};
       if (minRent) filter.monthlyRent.$gte = Number(minRent);
@@ -163,7 +192,8 @@ class ListingService {
    */
   async mapPoints(query = {}) {
     const {
-      keyword, type, division, district, area, minRent, maxRent, furnishedStatus, limit = 1000,
+      keyword, type, division, district, area,
+      minRent, maxRent, bedrooms, bathrooms, balconies, furnishedStatus, limit = 1000,
     } = query;
 
     const filter = {
@@ -175,6 +205,10 @@ class ListingService {
     if (district) filter['location.district'] = district;
     if (area) filter['location.area'] = area;
     if (furnishedStatus) filter['details.furnishedStatus'] = furnishedStatus;
+    if (bedrooms) filter['details.bedrooms'] = { $gte: Number(bedrooms) };
+    if (bathrooms) filter['details.bathrooms'] = { $gte: Number(bathrooms) };
+    if (balconies) filter['details.balconies'] = { $gte: Number(balconies) };
+    applyAmenityFilters(filter, query);
     if (minRent || maxRent) {
       filter.monthlyRent = {};
       if (minRent) filter.monthlyRent.$gte = Number(minRent);

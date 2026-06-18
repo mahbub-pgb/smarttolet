@@ -48,7 +48,7 @@ router.get('/', validate(v.search), ctrl.search);
  *       200: { description: Listings with coordinates, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
  */
 // Defined before '/:id' so "map" is not interpreted as a listing id.
-router.get('/map', ctrl.mapPoints);
+router.get('/map', validate(v.mapQuery), ctrl.mapPoints);
 
 /**
  * @openapi

@@ -117,6 +117,16 @@ const update = {
   body: create.body.partial(),
 };
 
+// Amenity filter flags accepted on the browse/map endpoints. Keys are the
+// query-param names; the service maps them onto the details/utilities paths.
+const AMENITY_PARAMS = [
+  'parking', 'lift', 'generator', 'ac', 'gym', 'pool', 'petFriendly',
+  'wifi', 'gas', 'security', 'cctv',
+];
+const amenityFilters = Object.fromEntries(
+  AMENITY_PARAMS.map((k) => [k, boolish.optional()]),
+);
+
 const search = {
   query: pagination.extend({
     keyword: z.string().optional(),
@@ -128,11 +138,32 @@ const search = {
     minRent: z.coerce.number().optional(),
     maxRent: z.coerce.number().optional(),
     bedrooms: z.coerce.number().optional(),
+    bathrooms: z.coerce.number().optional(),
+    balconies: z.coerce.number().optional(),
     furnishedStatus: z.enum(Object.values(FURNISHED_STATUS)).optional(),
     lat: z.coerce.number().optional(),
     lng: z.coerce.number().optional(),
     radiusKm: z.coerce.number().optional(),
     sort: z.enum(['newest', 'rent_asc', 'rent_desc']).optional(),
+    ...amenityFilters,
+  }),
+};
+
+const mapQuery = {
+  query: z.object({
+    keyword: z.string().optional(),
+    type: z.enum(LISTING_TYPES).optional(),
+    division: z.string().optional(),
+    district: z.string().optional(),
+    area: z.string().optional(),
+    minRent: z.coerce.number().optional(),
+    maxRent: z.coerce.number().optional(),
+    bedrooms: z.coerce.number().optional(),
+    bathrooms: z.coerce.number().optional(),
+    balconies: z.coerce.number().optional(),
+    furnishedStatus: z.enum(Object.values(FURNISHED_STATUS)).optional(),
+    limit: z.coerce.number().int().min(1).max(2000).optional(),
+    ...amenityFilters,
   }),
 };
 
@@ -152,4 +183,6 @@ const report = {
   }),
 };
 
-module.exports = { create, update, search, moderate, report, idParam, objectId };
+module.exports = {
+  create, update, search, mapQuery, moderate, report, idParam, objectId,
+};
