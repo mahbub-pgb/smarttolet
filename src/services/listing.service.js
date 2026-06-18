@@ -157,6 +157,38 @@ class ListingService {
     });
   }
 
+  /**
+   * Lightweight set of geo-located approved listings for the map view.
+   * Supports the same basic filters as search; capped to keep payloads sane.
+   */
+  async mapPoints(query = {}) {
+    const {
+      keyword, type, division, district, area, minRent, maxRent, furnishedStatus, limit = 1000,
+    } = query;
+
+    const filter = {
+      status: LISTING_STATUS.APPROVED,
+      'geo.coordinates': { $exists: true, $ne: null },
+    };
+    if (type) filter.type = type;
+    if (division) filter['location.division'] = division;
+    if (district) filter['location.district'] = district;
+    if (area) filter['location.area'] = area;
+    if (furnishedStatus) filter['details.furnishedStatus'] = furnishedStatus;
+    if (minRent || maxRent) {
+      filter.monthlyRent = {};
+      if (minRent) filter.monthlyRent.$gte = Number(minRent);
+      if (maxRent) filter.monthlyRent.$lte = Number(maxRent);
+    }
+    if (keyword) filter.$text = { $search: keyword };
+
+    return listingRepository.find(filter, {
+      projection: 'title slug type monthlyRent location geo images',
+      limit: Math.min(Number(limit) || 1000, 2000),
+      sort: { createdAt: -1 },
+    });
+  }
+
   async listMine(userId, { status, page = 1, limit = 20 } = {}) {
     const filter = { owner: userId };
     if (status) filter.status = status;

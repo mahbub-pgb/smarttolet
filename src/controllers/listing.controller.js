@@ -33,6 +33,11 @@ exports.search = asyncHandler(async (req, res) => {
   });
 });
 
+exports.mapPoints = asyncHandler(async (req, res) => {
+  const listings = await listingService.mapPoints(req.query);
+  sendSuccess(res, { data: { listings } });
+});
+
 exports.mine = asyncHandler(async (req, res) => {
   const { items, total } = await listingService.listMine(req.user._id, req.query);
   sendSuccess(res, {

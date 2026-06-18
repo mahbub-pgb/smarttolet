@@ -13,6 +13,7 @@ const { User, Listing } = require('../models');
 const {
   LISTING_TYPES, LISTING_STATUS, FURNISHED_STATUS, ROLES, ACCOUNT_STATUS,
 } = require('../constants');
+const { coordsFor } = require('./bdCoords');
 const logger = require('../config/logger');
 
 const COUNT = Number(process.argv[2]) || 1000;
@@ -95,6 +96,7 @@ function makeListing(ownerId, i, used) {
       furnishedStatus: rand(FURNISHED),
     },
     location: { division: place.division, district: place.district, area },
+    geo: { type: 'Point', coordinates: coordsFor({ area, district: place.district }) },
     images: [],
     status: LISTING_STATUS.APPROVED,
     isFeatured: Math.random() < 0.05,

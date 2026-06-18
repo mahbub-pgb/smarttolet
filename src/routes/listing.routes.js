@@ -39,6 +39,19 @@ router.get('/', validate(v.search), ctrl.search);
 
 /**
  * @openapi
+ * /listings/map:
+ *   get:
+ *     tags: [Listings]
+ *     summary: Geo-located approved listings for the map view
+ *     security: []
+ *     responses:
+ *       200: { description: Listings with coordinates, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ */
+// Defined before '/:id' so "map" is not interpreted as a listing id.
+router.get('/map', ctrl.mapPoints);
+
+/**
+ * @openapi
  * /listings/{id}:
  *   get:
  *     tags: [Listings]
