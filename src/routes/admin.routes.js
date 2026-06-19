@@ -169,6 +169,42 @@ router.patch(
 
 /**
  * @openapi
+ * /admin/listings/bulk-delete:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Delete several listings at once (any owner)
+ *     responses:
+ *       200: { description: Listings deleted, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ */
+router.post(
+  '/listings/bulk-delete',
+  requirePermission(PERMISSIONS.MANAGE_LISTINGS),
+  validate(v.bulkDelete),
+  ctrl.bulkDeleteListings,
+);
+
+/**
+ * @openapi
+ * /admin/listings/{id}:
+ *   delete:
+ *     tags: [Admin]
+ *     summary: Delete any listing (and its images); notifies the owner
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Listing deleted, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ */
+router.delete(
+  '/listings/:id',
+  requirePermission(PERMISSIONS.MANAGE_LISTINGS),
+  validate({ params: idParam }),
+  ctrl.deleteListing,
+);
+
+/**
+ * @openapi
  * /admin/reports:
  *   get:
  *     tags: [Admin]

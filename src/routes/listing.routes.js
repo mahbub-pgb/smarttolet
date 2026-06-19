@@ -127,6 +127,18 @@ router.get('/me/list', authenticate, ctrl.mine);
  */
 router.get('/me/stats', authenticate, ctrl.myStats);
 
+/**
+ * @openapi
+ * /listings/me/bulk-delete:
+ *   post:
+ *     tags: [Listings]
+ *     summary: Delete several of the authenticated owner's listings at once
+ *     responses:
+ *       200: { description: Listings deleted, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
+router.post('/me/bulk-delete', authenticate, validate(v.bulkDelete), ctrl.removeMany);
+
 router.put('/:id', authenticate, uploadListingImages, validate(v.update), ctrl.update);
 router.delete('/:id', authenticate, validate({ params: v.idParam }), ctrl.remove);
 

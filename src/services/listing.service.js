@@ -120,9 +120,28 @@ class ListingService {
     return listing;
   }
 
-  async uploadImages(files = []) {
+  /**
+   * Upload listing images, enforcing the admin-configured per-listing limits
+   * (image count and total size). `existingCount` is the number of images the
+   * listing already has, so edits can't push the total past the cap.
+   */
+  async uploadImages(files = [], { existingCount = 0 } = {}) {
     if (!files.length) return [];
-    if (files.length > 10) throw ApiError.badRequest('Maximum 10 images allowed');
+
+    const { uploadLimits } = await settingsService.get();
+    const maxImages = uploadLimits?.maxImagesPerListing ?? 5;
+    const maxTotalKb = uploadLimits?.maxTotalKb ?? 0;
+
+    if (existingCount + files.length > maxImages) {
+      throw ApiError.badRequest(`You can upload at most ${maxImages} image(s) per listing`);
+    }
+    if (maxTotalKb > 0) {
+      const totalBytes = files.reduce((sum, f) => sum + (f.size ?? f.buffer.length), 0);
+      if (totalBytes > maxTotalKb * 1024) {
+        throw ApiError.badRequest(`Total image size must not exceed ${maxTotalKb} KB`);
+      }
+    }
+
     return Promise.all(files.map((f) => cloudinaryService.uploadBuffer(f.buffer, { mimetype: f.mimetype })));
   }
 
@@ -158,8 +177,8 @@ class ListingService {
     const geo = this.buildGeo(data);
     if (geo) listing.geo = geo;
     if (files.length) {
-      const uploaded = await this.uploadImages(files);
-      listing.images = [...listing.images, ...uploaded].slice(0, 10);
+      const uploaded = await this.uploadImages(files, { existingCount: listing.images.length });
+      listing.images = [...listing.images, ...uploaded];
     }
     // Edited approved listings re-enter moderation.
     if (listing.status === LISTING_STATUS.APPROVED) listing.status = LISTING_STATUS.PENDING;
@@ -167,10 +186,46 @@ class ListingService {
     return listing;
   }
 
+  /** Delete one listing document and best-effort remove all of its images. */
+  async destroyListing(listing) {
+    await Promise.allSettled((listing.images || []).map((img) => cloudinaryService.destroy(img.publicId)));
+    await listingRepository.deleteById(listing._id);
+  }
+
+  /** Owner deletes a single listing of their own. */
   async remove(id, userId) {
     const listing = await this.assertOwner(id, userId);
-    await Promise.allSettled((listing.images || []).map((img) => cloudinaryService.destroy(img.publicId)));
-    await listingRepository.deleteById(id);
+    await this.destroyListing(listing);
+  }
+
+  /**
+   * Owner deletes several of their own listings at once. Silently ignores ids
+   * that don't exist or aren't theirs, so a stale selection can't delete
+   * someone else's data. Returns how many were actually removed.
+   */
+  async removeMany(ids, userId) {
+    const listings = await listingRepository.find({ _id: { $in: ids }, owner: userId });
+    await Promise.all(listings.map((l) => this.destroyListing(l)));
+    return { requested: ids.length, deleted: listings.length };
+  }
+
+  /**
+   * Staff delete one or more listings regardless of owner (e.g. policy
+   * violations). Each affected owner is notified. Returns the delete count.
+   */
+  async adminRemoveMany(ids) {
+    const listings = await listingRepository.find({ _id: { $in: ids } });
+    await Promise.all(listings.map((l) => this.destroyListing(l)));
+
+    await Promise.allSettled(
+      listings.map((l) => notificationService.notify(l.owner, {
+        title: 'Listing removed',
+        description: `"${l.title}" was removed by an administrator.`,
+        type: NOTIFICATION_TYPES.LISTING_REMOVED,
+        reference: { model: 'Listing', id: l._id },
+      })),
+    );
+    return { requested: ids.length, deleted: listings.length };
   }
 
   /**

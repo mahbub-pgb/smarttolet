@@ -72,6 +72,10 @@ class SettingsService {
         value: doc.listingExpiry?.value ?? 30,
         unit: doc.listingExpiry?.unit || 'days',
       },
+      uploadLimits: {
+        maxImagesPerListing: doc.uploadLimits?.maxImagesPerListing ?? 5,
+        maxTotalKb: doc.uploadLimits?.maxTotalKb ?? 0,
+      },
       promoMessages: (doc.promoMessages || []).map((m) => ({ title: m.title, message: m.message })),
       promoCooldownDays: doc.promoCooldownDays ?? 30,
       maintenanceMode: !!doc.maintenanceMode,
@@ -122,6 +126,9 @@ class SettingsService {
     }
     if (patch.listingExpiry) {
       doc.listingExpiry = { ...doc.listingExpiry?.toObject?.(), ...patch.listingExpiry };
+    }
+    if (patch.uploadLimits) {
+      doc.uploadLimits = { ...doc.uploadLimits?.toObject?.(), ...patch.uploadLimits };
     }
     if (patch.passwordChangeSms) {
       doc.passwordChangeSms = {

@@ -51,6 +51,14 @@ const settingsSchema = new Schema(
       unit: { type: String, enum: ['days', 'months'], default: 'days' },
     },
 
+    // Per-listing image upload limits, enforced when a user adds listing
+    // images. maxTotalKb of 0 means "no total-size limit" (per-file size is
+    // still capped by the upload middleware).
+    uploadLimits: {
+      maxImagesPerListing: { type: Number, default: 5, min: 1, max: 30 },
+      maxTotalKb: { type: Number, default: 0, min: 0 },
+    },
+
     // Reusable promotional SMS messages the admin can pick from (by title) on
     // the Promotions screen (or choose "new" to write a one-off message).
     promoMessages: {

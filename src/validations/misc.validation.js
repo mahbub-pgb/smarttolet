@@ -77,6 +77,13 @@ const settings = {
         })
         .partial()
         .optional(),
+      uploadLimits: z
+        .object({
+          maxImagesPerListing: z.coerce.number().int().min(1).max(30),
+          maxTotalKb: z.coerce.number().int().min(0).max(102400),
+        })
+        .partial()
+        .optional(),
       maintenanceMode: z.boolean().optional(),
       maintenanceMessage: z.string().optional(),
       sms: z

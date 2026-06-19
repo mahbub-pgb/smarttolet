@@ -86,7 +86,9 @@ const listingSchema = new Schema(
     // Media
     images: {
       type: [{ url: String, publicId: String }],
-      validate: [(v) => v.length <= 10, 'Maximum 10 images allowed'],
+      // Hard ceiling matching the upload middleware. The real, admin-tunable
+      // per-listing limit is enforced in listing.service against Settings.
+      validate: [(v) => v.length <= 30, 'Too many images'],
       default: [],
     },
     videoTourUrl: { type: String },

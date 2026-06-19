@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const sharp = require('sharp');
 const cloudinary = require('cloudinary').v2;
 const settingsService = require('./settings.service');
 const config = require('../config');
@@ -38,6 +39,35 @@ function applyConfig(c) {
   }
 }
 
+// Cap the longest edge so huge phone photos shrink before they ever leave the
+// server. Listing/profile images never need more than this.
+const MAX_EDGE = 1920;
+
+/**
+ * Re-encode an image buffer at a sensible quality and bounded dimensions to
+ * cut storage and bandwidth. Format is preserved. Animated GIFs are returned
+ * untouched (compressing them would flatten the animation), and we keep the
+ * original whenever compression doesn't actually make it smaller.
+ */
+async function compressImage(buffer, mimetype) {
+  if (mimetype === 'image/gif') return buffer;
+  try {
+    const pipeline = sharp(buffer)
+      .rotate() // bake in EXIF orientation before stripping metadata
+      .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true });
+
+    if (mimetype === 'image/png') pipeline.png({ compressionLevel: 9, palette: true });
+    else if (mimetype === 'image/webp') pipeline.webp({ quality: 80 });
+    else pipeline.jpeg({ quality: 80, mozjpeg: true });
+
+    const out = await pipeline.toBuffer();
+    return out.length < buffer.length ? out : buffer;
+  } catch (err) {
+    logger.warn(`Image compression failed, using original: ${err.message}`);
+    return buffer;
+  }
+}
+
 /** Dev fallback: persist the image to local disk and return a served URL. */
 function saveLocally(buffer, mimetype) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -53,6 +83,9 @@ function saveLocally(buffer, mimetype) {
  * non-production so image upload works without external credentials.
  */
 async function uploadBuffer(buffer, { folder = 'smart-tolet', resourceType = 'image', mimetype } = {}) {
+  if (resourceType === 'image') {
+    buffer = await compressImage(buffer, mimetype);
+  }
   const c = await getCloudinaryConfig();
   if (!c) {
     if (config.isProd) {
@@ -75,20 +108,40 @@ async function uploadBuffer(buffer, { folder = 'smart-tolet', resourceType = 'im
   });
 }
 
+/**
+ * Best-effort removal of a stored image. Never throws: a failed image cleanup
+ * must not block deleting its parent listing. Failures are logged so orphaned
+ * images can be spotted instead of disappearing silently.
+ */
 async function destroy(publicId) {
   if (!publicId) return;
 
   // Locally-stored images carry a `local:` prefix.
   if (publicId.startsWith('local:')) {
     const name = publicId.slice('local:'.length);
-    fs.promises.unlink(path.join(UPLOAD_DIR, name)).catch(() => {});
+    try {
+      await fs.promises.unlink(path.join(UPLOAD_DIR, name));
+    } catch (err) {
+      if (err.code !== 'ENOENT') logger.warn(`Failed to delete local image ${name}: ${err.message}`);
+    }
     return;
   }
 
   const c = await getCloudinaryConfig();
-  if (!c) return; // nothing we can do; never block deletes on missing config
+  if (!c) {
+    logger.warn(`Cannot delete Cloudinary image ${publicId}: Cloudinary is not configured`);
+    return; // never block deletes on missing config
+  }
   applyConfig(c);
-  await cloudinary.uploader.destroy(publicId);
+  try {
+    const res = await cloudinary.uploader.destroy(publicId);
+    // Cloudinary returns { result: 'ok' | 'not found' } rather than throwing.
+    if (res?.result !== 'ok' && res?.result !== 'not found') {
+      logger.warn(`Cloudinary did not delete image ${publicId}: ${res?.result}`);
+    }
+  } catch (err) {
+    logger.warn(`Failed to delete Cloudinary image ${publicId}: ${err.message}`);
+  }
 }
 
 module.exports = { uploadBuffer, destroy, UPLOAD_DIR };

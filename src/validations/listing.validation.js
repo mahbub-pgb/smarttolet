@@ -181,6 +181,13 @@ const report = {
   }),
 };
 
+// Bulk delete: a non-empty, capped list of listing ids.
+const bulkDelete = {
+  body: z.object({
+    ids: z.array(objectId).min(1, 'Select at least one listing').max(100),
+  }),
+};
+
 module.exports = {
-  create, update, search, mapQuery, moderate, report, idParam, objectId,
+  create, update, search, mapQuery, moderate, report, bulkDelete, idParam, objectId,
 };

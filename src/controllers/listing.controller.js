@@ -25,6 +25,11 @@ exports.remove = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: 'Listing deleted' });
 });
 
+exports.removeMany = asyncHandler(async (req, res) => {
+  const result = await listingService.removeMany(req.body.ids, req.user._id);
+  sendSuccess(res, { message: `${result.deleted} listing(s) deleted`, data: result });
+});
+
 exports.renew = asyncHandler(async (req, res) => {
   const listing = await listingService.renew(req.params.id, req.user._id);
   sendSuccess(res, { message: 'Listing renewed', data: { listing } });

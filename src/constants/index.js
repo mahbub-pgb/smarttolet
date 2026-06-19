@@ -81,6 +81,7 @@ const PAYMENT_STATUS = Object.freeze({
 const NOTIFICATION_TYPES = Object.freeze({
   LISTING_APPROVED: 'listing_approved',
   LISTING_REJECTED: 'listing_rejected',
+  LISTING_REMOVED: 'listing_removed',
   LISTING_EXPIRING: 'listing_expiring',
   NEW_MESSAGE: 'new_message',
   PROPERTY_REPORTED: 'property_reported',

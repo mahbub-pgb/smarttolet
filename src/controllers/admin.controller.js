@@ -68,6 +68,16 @@ exports.moderateListing = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: 'Listing reviewed', data: { listing } });
 });
 
+exports.deleteListing = asyncHandler(async (req, res) => {
+  await listingService.adminRemoveMany([req.params.id]);
+  sendSuccess(res, { message: 'Listing deleted' });
+});
+
+exports.bulkDeleteListings = asyncHandler(async (req, res) => {
+  const result = await listingService.adminRemoveMany(req.body.ids);
+  sendSuccess(res, { message: `${result.deleted} listing(s) deleted`, data: result });
+});
+
 // ---- Payments ----
 exports.listPayments = asyncHandler(async (req, res) => {
   const { items, total } = await paymentService.list(req.query);
