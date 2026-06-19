@@ -37,6 +37,9 @@ const PERMISSIONS = Object.freeze({
   REVIEW_LISTINGS: 'review_listings',
   APPROVE_LISTINGS: 'approve_listings',
 
+  // Blog
+  MANAGE_BLOG: 'manage_blog',
+
   // Reports
   MANAGE_REPORTS: 'manage_reports',
   RESOLVE_REPORTS: 'resolve_reports',
@@ -58,6 +61,8 @@ const MODERATOR_PERMS = [
   PERMISSIONS.RESOLVE_REPORTS,
   PERMISSIONS.MANAGE_REPORTS,
   PERMISSIONS.MANAGE_USERS,
+  // Blog authoring is open to all staff (moderator and up).
+  PERMISSIONS.MANAGE_BLOG,
 ];
 
 const ADMIN_PERMS = [

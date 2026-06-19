@@ -14,4 +14,7 @@ module.exports = {
   Advertisement: require('./advertisement.model'),
   Settings: require('./settings.model'),
   PromoSms: require('./promoSms.model'),
+  BlogPost: require('./blogPost.model'),
+  BlogCategory: require('./blogCategory.model'),
+  BlogTag: require('./blogTag.model'),
 };

@@ -26,6 +26,9 @@ class ReportRepository extends BaseRepository {}
 class SubscriptionRepository extends BaseRepository {}
 class PaymentRepository extends BaseRepository {}
 class AdvertisementRepository extends BaseRepository {}
+class BlogPostRepository extends BaseRepository {}
+class BlogCategoryRepository extends BaseRepository {}
+class BlogTagRepository extends BaseRepository {}
 
 module.exports = {
   userRepository: new UserRepository(models.User),
@@ -39,4 +42,7 @@ module.exports = {
   subscriptionRepository: new SubscriptionRepository(models.Subscription),
   paymentRepository: new PaymentRepository(models.Payment),
   advertisementRepository: new AdvertisementRepository(models.Advertisement),
+  blogPostRepository: new BlogPostRepository(models.BlogPost),
+  blogCategoryRepository: new BlogCategoryRepository(models.BlogCategory),
+  blogTagRepository: new BlogTagRepository(models.BlogTag),
 };

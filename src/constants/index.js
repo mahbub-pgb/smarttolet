@@ -37,6 +37,11 @@ const LISTING_STATUS = Object.freeze({
   EXPIRED: 'expired',
 });
 
+const BLOG_STATUS = Object.freeze({
+  DRAFT: 'draft',
+  PUBLISHED: 'published',
+});
+
 const REPORT_REASONS = Object.freeze([
   'fake_listing',
   'wrong_information',
@@ -108,6 +113,7 @@ module.exports = {
   GENDER,
   LISTING_TYPES,
   LISTING_STATUS,
+  BLOG_STATUS,
   REPORT_REASONS,
   REPORT_STATUS,
   SUBSCRIPTION_PLANS,
