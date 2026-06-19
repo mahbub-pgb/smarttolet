@@ -5,6 +5,11 @@ const placesService = require('../services/places.service');
 const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess, paginate } = require('../utils/ApiResponse');
 
+// Short, shared cache window for public read endpoints. `stale-while-revalidate`
+// lets a CDN/browser serve a slightly stale copy while refreshing in the
+// background, cutting repeat bandwidth without making data look frozen.
+const PUBLIC_CACHE = 'public, max-age=60, stale-while-revalidate=300';
+
 exports.create = asyncHandler(async (req, res) => {
   const listing = await listingService.create(req.user._id, req.body, req.files, req.user.role);
   const message = listing.status === 'approved'
@@ -37,11 +42,13 @@ exports.renew = asyncHandler(async (req, res) => {
 
 exports.getOne = asyncHandler(async (req, res) => {
   const listing = await listingService.getById(req.params.id, { incrementView: true });
+  res.set('Cache-Control', PUBLIC_CACHE);
   sendSuccess(res, { data: { listing } });
 });
 
 exports.search = asyncHandler(async (req, res) => {
   const { items, total } = await listingService.search(req.query);
+  res.set('Cache-Control', PUBLIC_CACHE);
   sendSuccess(res, {
     data: { listings: items },
     meta: paginate({ page: req.query.page, limit: req.query.limit, total }),
@@ -50,6 +57,7 @@ exports.search = asyncHandler(async (req, res) => {
 
 exports.mapPoints = asyncHandler(async (req, res) => {
   const listings = await listingService.mapPoints(req.query);
+  res.set('Cache-Control', PUBLIC_CACHE);
   sendSuccess(res, { data: { listings } });
 });
 

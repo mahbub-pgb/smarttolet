@@ -49,10 +49,10 @@ class BaseRepository {
   }
 
   /** Standard offset pagination returning { items, total }. */
-  async paginate(filter = {}, { page = 1, limit = 20, sort = { createdAt: -1 }, populate } = {}) {
+  async paginate(filter = {}, { page = 1, limit = 20, sort = { createdAt: -1 }, populate, projection } = {}) {
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
-      this.find(filter, { sort, skip, limit, populate }),
+      this.find(filter, { sort, skip, limit, populate, projection }),
       this.count(filter),
     ]);
     return { items, total };

@@ -288,6 +288,18 @@ class ListingService {
       page: Number(page),
       limit: Math.min(Number(limit), 50),
       sort: filter.geo ? undefined : sortMap[sort] || sortMap.newest,
+      // Browse cards only need summary fields + the first image, so we avoid
+      // shipping the full images[] array and long description for every result.
+      projection: {
+        title: 1,
+        slug: 1,
+        type: 1,
+        monthlyRent: 1,
+        location: 1,
+        isFeatured: 1,
+        createdAt: 1,
+        images: { $slice: 1 },
+      },
     });
   }
 
