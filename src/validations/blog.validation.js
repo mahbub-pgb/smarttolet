@@ -40,7 +40,9 @@ const create = {
       .max(180, 'Title must be at most 180 characters'),
     excerpt: z.string().max(500).optional(),
     coverImage: imageRef,
-    blocks: z.array(blockSchema).max(200).default([]),
+    // Rich HTML from CKEditor. Generous cap; trusted-staff authored.
+    contentHtml: z.string().max(200000).optional(),
+    blocks: z.array(blockSchema).max(200).optional(),
     category: objectId.optional().nullable(),
     tags: z.array(objectId).max(30).optional(),
     status: z.enum([BLOG_STATUS.DRAFT, BLOG_STATUS.PUBLISHED]).optional(),

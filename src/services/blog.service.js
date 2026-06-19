@@ -62,6 +62,26 @@ function imagePublicIds(post) {
   return ids;
 }
 
+/**
+ * Build a plain-text summary from the post's rich HTML, used for cards and the
+ * SEO meta description. Strips tags, decodes the common entities, collapses
+ * whitespace, and trims to a word boundary.
+ */
+function deriveExcerpt(html = '', max = 180) {
+  const text = String(html)
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max).replace(/\s+\S*$/, '')}…`;
+}
+
 class BlogService {
   // ---- Posts ----
 
@@ -70,8 +90,10 @@ class BlogService {
     const payload = {
       author: authorId,
       title: data.title,
-      excerpt: data.excerpt,
+      // Auto-derived from the content when not explicitly supplied.
+      excerpt: data.excerpt || deriveExcerpt(data.contentHtml),
       coverImage: data.coverImage,
+      contentHtml: data.contentHtml || '',
       blocks: normalizeBlocks(data.blocks),
       category: data.category || undefined,
       tags: data.tags || [],
@@ -89,8 +111,13 @@ class BlogService {
     const before = imagePublicIds(post);
 
     if (data.title !== undefined) post.title = data.title;
-    if (data.excerpt !== undefined) post.excerpt = data.excerpt;
     if (data.coverImage !== undefined) post.coverImage = data.coverImage || undefined;
+    if (data.contentHtml !== undefined) {
+      post.contentHtml = data.contentHtml;
+      // Keep the excerpt in sync with the content unless one is given.
+      if (data.excerpt === undefined) post.excerpt = deriveExcerpt(data.contentHtml);
+    }
+    if (data.excerpt !== undefined) post.excerpt = data.excerpt;
     if (data.blocks !== undefined) post.blocks = normalizeBlocks(data.blocks);
     if (data.category !== undefined) post.category = data.category || undefined;
     if (data.tags !== undefined) post.tags = data.tags;

@@ -43,6 +43,11 @@ const blogPostSchema = new Schema(
       publicId: { type: String, trim: true },
     },
 
+    // Primary body: rich HTML produced by the CKEditor 5 editor.
+    contentHtml: { type: String, default: '' },
+
+    // Legacy/alternate body: the simple block editor's ordered blocks. Kept so
+    // older posts (and the block renderer) still work as a fallback.
     blocks: { type: [blockSchema], default: [] },
 
     category: { type: Schema.Types.ObjectId, ref: 'BlogCategory', index: true },
