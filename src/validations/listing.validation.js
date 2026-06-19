@@ -160,6 +160,12 @@ const mapQuery = {
     bedrooms: z.coerce.number().optional(),
     bathrooms: z.coerce.number().optional(),
     balconies: z.coerce.number().optional(),
+    // Optional centre point + radius for "listings near me".
+    lat: z.coerce.number().min(-90).max(90).optional(),
+    lng: z.coerce.number().min(-180).max(180).optional(),
+    radiusKm: z.coerce.number().min(0.5).max(100).optional(),
+    // "west,south,east,north" bounding box for the draw-an-area view.
+    bbox: z.string().regex(/^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$/).optional(),
     limit: z.coerce.number().int().min(1).max(2000).optional(),
     ...amenityFilters,
   }),

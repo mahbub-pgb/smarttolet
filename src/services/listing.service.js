@@ -45,6 +45,19 @@ function escapeRegex(str) {
 }
 
 /**
+ * Parse a "west,south,east,north" bounding-box string into a closed GeoJSON
+ * polygon ring (counter-clockwise exterior). Returns null when malformed.
+ */
+function parseBbox(bbox) {
+  if (!bbox) return null;
+  const p = String(bbox).split(',').map(Number);
+  if (p.length !== 4 || p.some((n) => !Number.isFinite(n))) return null;
+  const [w, s, e, n] = p;
+  if (w >= e || s >= n) return null;
+  return [[w, s], [e, s], [e, n], [w, n], [w, s]];
+}
+
+/**
  * Apply a keyword search to the filter. Uses a case-insensitive regex across
  * the key fields so partial/prefix matches work (e.g. "veri" matches
  * "Veritatis nisi") — MongoDB's $text index only matches whole words.
@@ -285,13 +298,30 @@ class ListingService {
   async mapPoints(query = {}) {
     const {
       keyword, type, division, district, area,
-      minRent, maxRent, bedrooms, bathrooms, balconies, limit = 1000,
+      minRent, maxRent, bedrooms, bathrooms, balconies,
+      lat, lng, radiusKm, bbox, limit = 1000,
     } = query;
 
-    const filter = {
-      status: LISTING_STATUS.APPROVED,
-      'geo.coordinates': { $exists: true, $ne: null },
-    };
+    const filter = { status: LISTING_STATUS.APPROVED };
+    // Geo scoping, in priority order:
+    //   1. bbox  -> only listings inside the user-drawn rectangle.
+    //   2. centre point -> listings near the viewer; with radiusKm capped to it,
+    //      without radiusKm all listings ordered by distance ("All").
+    //   3. neither -> every geo-tagged listing.
+    const box = parseBbox(bbox);
+    const hasCenter = lat != null && lng != null && lat !== '' && lng !== '';
+    let nearSorted = false; // $near self-sorts by distance; don't add a sort.
+    if (box) {
+      filter.geo = { $geoWithin: { $geometry: { type: 'Polygon', coordinates: [box] } } };
+    } else if (hasCenter) {
+      const near = { $geometry: { type: 'Point', coordinates: [Number(lng), Number(lat)] } };
+      const r = Number(radiusKm);
+      if (Number.isFinite(r) && r > 0) near.$maxDistance = r * 1000;
+      filter.geo = { $near: near };
+      nearSorted = true;
+    } else {
+      filter['geo.coordinates'] = { $exists: true, $ne: null };
+    }
     if (type) filter.type = type;
     if (division) filter['location.division'] = division;
     if (district) filter['location.district'] = district;
@@ -310,7 +340,8 @@ class ListingService {
     return listingRepository.find(filter, {
       projection: 'title slug type monthlyRent location geo images',
       limit: Math.min(Number(limit) || 1000, 2000),
-      sort: { createdAt: -1 },
+      // $near already sorts by distance; a manual sort would conflict.
+      sort: nearSorted ? undefined : { createdAt: -1 },
     });
   }
 
