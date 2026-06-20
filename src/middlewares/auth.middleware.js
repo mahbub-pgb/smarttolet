@@ -30,6 +30,10 @@ const authenticate = asyncHandler(async (req, _res, next) => {
   if (user.status === ACCOUNT_STATUS.SUSPENDED) {
     throw ApiError.forbidden('Account suspended', { code: 'ACCOUNT_SUSPENDED' });
   }
+  // Reject tokens issued before the last logout / password change / revoke.
+  if ((decoded.tv ?? 0) !== (user.tokenVersion ?? 0)) {
+    throw ApiError.unauthorized('Session has been revoked', { code: 'TOKEN_REVOKED' });
+  }
   req.user = user;
   req.token = token;
   next();
@@ -41,7 +45,13 @@ const optionalAuth = asyncHandler(async (req, _res, next) => {
   if (!token) return next();
   try {
     const decoded = verifyAccessToken(token);
-    req.user = await userRepository.findById(decoded.sub);
+    const user = await userRepository.findById(decoded.sub);
+    // Honour revocation and suspension even on optional-auth routes.
+    if (user
+      && user.status !== ACCOUNT_STATUS.SUSPENDED
+      && (decoded.tv ?? 0) === (user.tokenVersion ?? 0)) {
+      req.user = user;
+    }
   } catch {
     /* ignore — treat as anonymous */
   }

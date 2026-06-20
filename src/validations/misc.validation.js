@@ -112,6 +112,14 @@ const user = {
       role: z.enum(Object.values(ROLES)).optional(),
     }),
   },
+  setStatus: {
+    params: idParam,
+    body: z.object({ status: z.enum(Object.values(ACCOUNT_STATUS)) }),
+  },
+  setRole: {
+    params: idParam,
+    body: z.object({ role: z.enum(Object.values(ROLES)) }),
+  },
   // Admin editing an existing account. Every field is optional; password is
   // only changed when a non-empty value is supplied.
   update: {

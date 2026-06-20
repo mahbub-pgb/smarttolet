@@ -1,6 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const sanitizeHtml = require('sanitize-html');
 const {
   blogPostRepository,
   blogCategoryRepository,
@@ -9,6 +10,36 @@ const {
 const cloudinaryService = require('./cloudinary.service');
 const ApiError = require('../utils/ApiError');
 const { BLOG_STATUS } = require('../constants');
+
+/**
+ * Allow a rich-but-safe subset of HTML from the editor. Scripts, event handlers
+ * (onerror/onclick/...), <style>, <iframe>, javascript: URLs, etc. are stripped,
+ * which neutralises stored XSS regardless of who authored the post.
+ */
+const SANITIZE_OPTIONS = {
+  allowedTags: [
+    'p', 'br', 'hr', 'blockquote', 'pre', 'code', 'span', 'div',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'ul', 'ol', 'li', 'strong', 'b', 'em', 'i', 'u', 's', 'sub', 'sup',
+    'a', 'img', 'figure', 'figcaption',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  ],
+  allowedAttributes: {
+    a: ['href', 'title', 'target', 'rel'],
+    img: ['src', 'alt', 'title', 'width', 'height'],
+    '*': ['class'],
+  },
+  allowedSchemes: ['https', 'http', 'mailto'],
+  allowedSchemesByTag: { img: ['https', 'http'] },
+  // Force safe rel on links that open a new tab.
+  transformTags: {
+    a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer nofollow' }),
+  },
+};
+
+function sanitizeContent(html = '') {
+  return sanitizeHtml(String(html), SANITIZE_OPTIONS);
+}
 
 const POPULATE = [
   { path: 'author', select: 'fullName profileImage' },
@@ -87,13 +118,14 @@ class BlogService {
 
   async create(authorId, data) {
     const status = data.status === BLOG_STATUS.PUBLISHED ? BLOG_STATUS.PUBLISHED : BLOG_STATUS.DRAFT;
+    const contentHtml = sanitizeContent(data.contentHtml || '');
     const payload = {
       author: authorId,
       title: data.title,
-      // Auto-derived from the content when not explicitly supplied.
-      excerpt: data.excerpt || deriveExcerpt(data.contentHtml),
+      // Auto-derived from the (sanitised) content when not explicitly supplied.
+      excerpt: data.excerpt || deriveExcerpt(contentHtml),
       coverImage: data.coverImage,
-      contentHtml: data.contentHtml || '',
+      contentHtml,
       blocks: normalizeBlocks(data.blocks),
       category: data.category || undefined,
       tags: data.tags || [],
@@ -113,9 +145,9 @@ class BlogService {
     if (data.title !== undefined) post.title = data.title;
     if (data.coverImage !== undefined) post.coverImage = data.coverImage || undefined;
     if (data.contentHtml !== undefined) {
-      post.contentHtml = data.contentHtml;
-      // Keep the excerpt in sync with the content unless one is given.
-      if (data.excerpt === undefined) post.excerpt = deriveExcerpt(data.contentHtml);
+      post.contentHtml = sanitizeContent(data.contentHtml);
+      // Keep the excerpt in sync with the (sanitised) content unless one is given.
+      if (data.excerpt === undefined) post.excerpt = deriveExcerpt(post.contentHtml);
     }
     if (data.excerpt !== undefined) post.excerpt = data.excerpt;
     if (data.blocks !== undefined) post.blocks = normalizeBlocks(data.blocks);

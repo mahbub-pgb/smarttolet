@@ -29,7 +29,9 @@ function verifyRefreshToken(token) {
  * Issue both tokens for a user document.
  */
 function issueTokenPair(user) {
-  const payload = { sub: String(user._id), role: user.role };
+  // `tv` (tokenVersion) is embedded so a logout / password change / suspend
+  // (which bumps the stored version) invalidates every previously-issued token.
+  const payload = { sub: String(user._id), role: user.role, tv: user.tokenVersion ?? 0 };
   return {
     accessToken: signAccessToken(payload),
     refreshToken: signRefreshToken(payload),

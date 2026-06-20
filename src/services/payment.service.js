@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { paymentRepository } = require('../repositories');
 const subscriptionService = require('./subscription.service');
 const notificationService = require('./notification.service');
+const config = require('../config');
 const ApiError = require('../utils/ApiError');
 const { PAYMENT_STATUS, PAYMENT_METHODS, NOTIFICATION_TYPES, SUBSCRIPTION_PLANS } = require('../constants');
 
@@ -46,16 +47,37 @@ class PaymentService {
   }
 
   /**
-   * Confirm a payment after the gateway callback. In production, verify
-   * `transactionId` against the gateway API before trusting it.
+   * Verify the payment with the gateway before trusting it. This MUST confirm
+   * with the gateway's API that the transaction completed AND that the charged
+   * amount equals the expected amount.
+   *
+   * No concrete gateway client is wired in yet, so this fails closed in
+   * production: a forged callback cannot mark a payment successful. In
+   * non-production (mock provider) a transactionId is accepted so local and
+   * staging flows can be exercised without a live gateway.
+   */
+  async verifyWithGateway(payment, { transactionId }) {
+    // TODO: replace with a real bKash/Nagad/Rocket execute+query call:
+    //   const res = await gatewayClient.query(payment.paymentRef);
+    //   return res.status === 'Completed' && Number(res.amount) === payment.amount;
+    if (config.isProd) {
+      throw ApiError.serviceUnavailable('Payment verification is not available', {
+        code: 'GATEWAY_NOT_CONFIGURED',
+      });
+    }
+    return Boolean(transactionId);
+  }
+
+  /**
+   * Confirm a payment after the gateway callback. Trust is established by
+   * verifyWithGateway(), never by the presence of a client-supplied field.
    */
   async verify({ paymentRef, transactionId, gatewayResponse }) {
     const payment = await paymentRepository.findOne({ paymentRef });
     if (!payment) throw ApiError.notFound('Payment not found');
     if (payment.status === PAYMENT_STATUS.SUCCESS) return payment; // idempotent
 
-    // const ok = await this.verifyWithGateway(payment, transactionId);
-    const ok = !!transactionId;
+    const ok = await this.verifyWithGateway(payment, { transactionId });
     payment.transactionId = transactionId;
     payment.gatewayResponse = gatewayResponse;
     payment.status = ok ? PAYMENT_STATUS.SUCCESS : PAYMENT_STATUS.FAILED;

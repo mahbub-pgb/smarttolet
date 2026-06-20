@@ -94,7 +94,7 @@ router.patch('/users/:id', requirePermission(PERMISSIONS.MANAGE_USERS), validate
 router.patch(
   '/users/:id/status',
   requirePermission(PERMISSIONS.SUSPEND_ACCOUNTS),
-  validate({ params: idParam }),
+  validate(m.user.setStatus),
   ctrl.setUserStatus,
 );
 
@@ -113,7 +113,7 @@ router.patch(
 router.patch(
   '/users/:id/role',
   requirePermission(PERMISSIONS.MANAGE_MODERATORS),
-  validate({ params: idParam }),
+  validate(m.user.setRole),
   ctrl.setUserRole,
 );
 

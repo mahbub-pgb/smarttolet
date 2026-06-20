@@ -39,6 +39,30 @@ function applyConfig(c) {
   }
 }
 
+/**
+ * Sniff the real file type from magic bytes. The client-declared MIME (checked
+ * by multer) is spoofable, so we confirm the bytes actually are one of the
+ * allowed image formats before doing anything with the buffer. Rejects
+ * polyglots / renamed scripts that merely claim to be images.
+ */
+function detectImageType(buf) {
+  if (!Buffer.isBuffer(buf) || buf.length < 12) return null;
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png';
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return 'image/gif';
+  if (
+    buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46
+    && buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
+  ) return 'image/webp';
+  return null;
+}
+
+function assertRealImage(buffer) {
+  if (!detectImageType(buffer)) {
+    throw ApiError.badRequest('Uploaded file is not a valid image', { code: 'INVALID_IMAGE' });
+  }
+}
+
 // Cap the longest edge so huge phone photos shrink before they ever leave the
 // server. Listing/profile images never need more than this.
 const MAX_EDGE = 1920;
@@ -84,6 +108,7 @@ function saveLocally(buffer, mimetype) {
  */
 async function uploadBuffer(buffer, { folder = 'smart-tolet', resourceType = 'image', mimetype } = {}) {
   if (resourceType === 'image') {
+    assertRealImage(buffer); // reject anything whose bytes aren't a real image
     buffer = await compressImage(buffer, mimetype);
   }
   const c = await getCloudinaryConfig();

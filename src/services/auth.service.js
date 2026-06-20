@@ -2,6 +2,7 @@
 
 const { userRepository } = require('../repositories');
 const { Subscription } = require('../models');
+const { redis } = require('../config/redis');
 const otpService = require('./otp.service');
 const notificationService = require('./notification.service');
 const cloudinaryService = require('./cloudinary.service');
@@ -17,15 +18,19 @@ const { ACCOUNT_STATUS, ROLES, SUBSCRIPTION_PLANS } = require('../constants');
 const OTP_PURPOSE = 'phone_verify';
 const OTP_PURPOSE_RESET = 'password_reset';
 
+// Per-account login lockout (complements the IP-based authLimiter, so that
+// credential stuffing from rotating IPs is still bounded per target account).
+const LOGIN_MAX_FAILS = 10;
+const LOGIN_LOCK_WINDOW = 15 * 60; // seconds
+
 class AuthService {
-  /** Registration step 1a: send OTP to a mobile number. */
+  /**
+   * Registration step 1a: send OTP to a mobile number. We intentionally do NOT
+   * reveal whether the number already has an account — doing so allows account
+   * enumeration. Duplicate accounts are naturally prevented in verifyPhoneOtp,
+   * which finds and reuses the existing user instead of creating a new one.
+   */
   async requestPhoneOtp(mobile) {
-    const existing = await userRepository.findByMobile(mobile);
-    if (existing && existing.isPhoneVerified && existing.password) {
-      throw ApiError.conflict('An account with this mobile already exists', {
-        code: 'MOBILE_TAKEN',
-      });
-    }
     return otpService.requestOtp(OTP_PURPOSE, mobile);
   }
 
@@ -122,8 +127,18 @@ class AuthService {
       ? { email: String(identifier).toLowerCase() }
       : { mobile: identifier };
 
+    const lockKey = `login:fail:${String(identifier).toLowerCase()}`;
+    const fails = Number(await redis.get(lockKey)) || 0;
+    if (fails >= LOGIN_MAX_FAILS) {
+      throw ApiError.tooMany('Too many failed login attempts. Please try again later.', {
+        code: 'LOGIN_LOCKED',
+      });
+    }
+
     const user = await userRepository.findForAuth(filter);
     if (!user || !(await user.comparePassword(password))) {
+      // Count the failure against the targeted account (sliding window TTL).
+      await redis.multi().incr(lockKey).expire(lockKey, LOGIN_LOCK_WINDOW).exec();
       throw ApiError.unauthorized('Invalid credentials', { code: 'BAD_CREDENTIALS' });
     }
     if (user.status === ACCOUNT_STATUS.SUSPENDED) {
@@ -133,6 +148,7 @@ class AuthService {
       throw ApiError.unauthorized('Account no longer exists', { code: 'ACCOUNT_DELETED' });
     }
 
+    await redis.del(lockKey); // successful login clears the counter
     user.lastLoginAt = new Date();
     await user.save();
 
@@ -154,7 +170,12 @@ class AuthService {
     if (!user || user.status !== ACCOUNT_STATUS.ACTIVE) {
       throw ApiError.unauthorized('Session is no longer valid');
     }
-    const payload = { sub: String(user._id), role: user.role };
+    // A logout / password change / revoke bumps tokenVersion, which retires
+    // every refresh token issued before it.
+    if ((decoded.tv ?? 0) !== (user.tokenVersion ?? 0)) {
+      throw ApiError.unauthorized('Session has been revoked', { code: 'TOKEN_REVOKED' });
+    }
+    const payload = { sub: String(user._id), role: user.role, tv: user.tokenVersion ?? 0 };
     return {
       accessToken: signAccessToken(payload),
       refreshToken: signRefreshToken(payload),
@@ -197,6 +218,7 @@ class AuthService {
     }
 
     user.password = newPassword; // hashed by the pre-save hook
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1; // revoke existing sessions
     await user.save();
     return user;
   }
@@ -220,6 +242,7 @@ class AuthService {
     if (!user) throw ApiError.notFound('User not found');
 
     user.password = newPassword; // hashed by the pre-save hook
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1; // revoke existing sessions
     await user.save();
     return user;
   }

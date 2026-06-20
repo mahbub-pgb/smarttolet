@@ -64,4 +64,25 @@ const config = {
   },
 };
 
+// Defence-in-depth: never let a production deployment boot with the well-known
+// development placeholder secrets, even if they were copied into real env vars.
+if (config.isProd) {
+  const WEAK = new Set([
+    'dev_access_secret',
+    'dev_refresh_secret',
+    'change_me_access_secret',
+    'change_me_refresh_secret',
+    'ChangeMe123!',
+  ]);
+  const offenders = [];
+  if (WEAK.has(config.jwt.accessSecret)) offenders.push('JWT_ACCESS_SECRET');
+  if (WEAK.has(config.jwt.refreshSecret)) offenders.push('JWT_REFRESH_SECRET');
+  if (config.jwt.accessSecret === config.jwt.refreshSecret) offenders.push('JWT secrets must differ');
+  if ((config.jwt.accessSecret || '').length < 32) offenders.push('JWT_ACCESS_SECRET too short (<32)');
+  if (WEAK.has(config.superAdmin.password)) offenders.push('SUPER_ADMIN_PASSWORD');
+  if (offenders.length) {
+    throw new Error(`Insecure production secrets detected: ${offenders.join(', ')}`);
+  }
+}
+
 module.exports = config;

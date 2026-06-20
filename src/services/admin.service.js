@@ -12,6 +12,12 @@ const settingsService = require('./settings.service');
 const smsService = require('./sms.service');
 const logger = require('../config/logger');
 
+// Escape regex metacharacters so user-supplied search input is matched
+// literally and cannot trigger catastrophic backtracking (ReDoS).
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 class AdminService {
   /** Dashboard summary cards. */
   async dashboardCards() {
@@ -90,11 +96,8 @@ class AdminService {
     if (role) filter.role = role;
     if (status) filter.status = status;
     if (search) {
-      filter.$or = [
-        { fullName: new RegExp(search, 'i') },
-        { mobile: new RegExp(search, 'i') },
-        { email: new RegExp(search, 'i') },
-      ];
+      const rx = new RegExp(escapeRegex(search), 'i');
+      filter.$or = [{ fullName: rx }, { mobile: rx }, { email: rx }];
     }
     const skip = (page - 1) * limit;
     return Promise.all([
@@ -295,16 +298,49 @@ class AdminService {
     await smsService.sendSms(mobile, message);
   }
 
-  setStatus(userId, status) {
-    return User.findByIdAndUpdate(userId, { status }, { new: true });
+  /**
+   * Load the target and refuse to act on an account of equal-or-higher rank
+   * than the actor (e.g. an admin cannot suspend/demote a super_admin). Acting
+   * on your own account is allowed.
+   */
+  async loadManageableTarget(userId, actor) {
+    const target = await User.findById(userId);
+    if (!target) throw ApiError.notFound('User not found');
+    const isSelf = String(target._id) === String(actor._id);
+    if (!isSelf && roleRank(target.role) >= roleRank(actor.role)) {
+      throw ApiError.forbidden('You cannot manage an account at or above your role', {
+        code: 'RANK_FORBIDDEN',
+      });
+    }
+    return target;
   }
 
-  setRole(userId, role) {
-    return User.findByIdAndUpdate(userId, { role }, { new: true });
+  async setStatus(userId, status, actor) {
+    const target = await this.loadManageableTarget(userId, actor);
+    target.status = status;
+    // Suspending an account retires its active sessions.
+    if (status === ACCOUNT_STATUS.SUSPENDED) target.tokenVersion = (target.tokenVersion ?? 0) + 1;
+    await target.save();
+    return target;
   }
 
-  verifyLandlord(userId, verified = true) {
-    return User.findByIdAndUpdate(userId, { isLandlordVerified: verified }, { new: true });
+  async setRole(userId, role, actor) {
+    const target = await this.loadManageableTarget(userId, actor);
+    if (roleRank(role) >= roleRank(actor.role)) {
+      throw ApiError.forbidden('Cannot assign a role equal to or above your own', {
+        code: 'RANK_FORBIDDEN',
+      });
+    }
+    target.role = role;
+    await target.save();
+    return target;
+  }
+
+  async verifyLandlord(userId, verified = true, actor) {
+    const target = await this.loadManageableTarget(userId, actor);
+    target.isLandlordVerified = verified;
+    await target.save();
+    return target;
   }
 }
 

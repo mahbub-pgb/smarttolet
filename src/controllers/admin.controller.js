@@ -6,8 +6,6 @@ const adminService = require('../services/admin.service');
 const listingService = require('../services/listing.service');
 const paymentService = require('../services/payment.service');
 const settingsService = require('../services/settings.service');
-const ApiError = require('../utils/ApiError');
-const { roleRank } = require('../constants');
 
 const meta = (req, total) => paginate({ page: req.query.page, limit: req.query.limit, total });
 
@@ -39,21 +37,22 @@ exports.updateUser = asyncHandler(async (req, res) => {
 });
 
 exports.setUserStatus = asyncHandler(async (req, res) => {
-  const target = await adminService.setStatus(req.params.id, req.body.status);
+  const target = await adminService.setStatus(req.params.id, req.body.status, req.user);
   sendSuccess(res, { message: 'Status updated', data: { user: target } });
 });
 
 exports.setUserRole = asyncHandler(async (req, res) => {
-  // Cannot assign a role at or above your own rank.
-  if (roleRank(req.body.role) >= roleRank(req.user.role)) {
-    throw ApiError.forbidden('Cannot assign a role equal to or above your own');
-  }
-  const target = await adminService.setRole(req.params.id, req.body.role);
+  // Rank guards (target rank + assigned-role rank) are enforced in the service.
+  const target = await adminService.setRole(req.params.id, req.body.role, req.user);
   sendSuccess(res, { message: 'Role updated', data: { user: target } });
 });
 
 exports.verifyLandlord = asyncHandler(async (req, res) => {
-  const target = await adminService.verifyLandlord(req.params.id, req.body.verified !== false);
+  const target = await adminService.verifyLandlord(
+    req.params.id,
+    req.body.verified !== false,
+    req.user,
+  );
   sendSuccess(res, { message: 'Landlord verification updated', data: { user: target } });
 });
 
