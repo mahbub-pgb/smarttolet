@@ -17,4 +17,5 @@ module.exports = {
   BlogPost: require('./blogPost.model'),
   BlogCategory: require('./blogCategory.model'),
   BlogTag: require('./blogTag.model'),
+  Media: require('./media.model'),
 };

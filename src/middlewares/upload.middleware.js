@@ -31,6 +31,7 @@ const uploadImages = multer({
 
 module.exports = {
   uploadListingImages: uploadImages.array('images', MAX_FILES),
+  uploadMedia: uploadImages.array('images', MAX_FILES),
   uploadAvatar: uploadImages.single('profileImage'),
   uploadSingle: uploadImages.single('image'),
 };

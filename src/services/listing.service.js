@@ -112,7 +112,12 @@ class ListingService {
       await this.assertWithinPlanLimit(userId);
     }
 
-    const images = await this.uploadImages(files);
+    // Images can arrive two ways: freshly uploaded files, and/or items the user
+    // picked from their media library (already-hosted { url, publicId }).
+    const picked = this.normalizePickedMedia(data.mediaImages);
+    await this.assertWithinImageLimit(picked.length + files.length);
+    const uploaded = await this.uploadImages(files, { existingCount: picked.length });
+    const images = [...picked, ...uploaded];
     const geo = this.buildGeo(data);
 
     // Drafts stay drafts; staff who chose Publish go live; everyone else goes
@@ -121,7 +126,8 @@ class ListingService {
     if (wantsDraft) status = LISTING_STATUS.DRAFT;
     else if (publish) status = LISTING_STATUS.APPROVED;
 
-    const payload = { ...data, owner: userId, geo, images, status };
+    const { mediaImages, ...rest } = data;
+    const payload = { ...rest, owner: userId, geo, images, status };
     if (status === LISTING_STATUS.APPROVED) {
       // Mirror the moderation path: set the active period and stamp the review.
       payload.expiresAt = await this.computeExpiry();
@@ -158,6 +164,26 @@ class ListingService {
     return Promise.all(files.map((f) => cloudinaryService.uploadBuffer(f.buffer, { mimetype: f.mimetype })));
   }
 
+  /**
+   * Keep only well-formed { url, publicId } pairs from the picked-media payload,
+   * dropping anything a client might tack on. Returns a clean array.
+   */
+  normalizePickedMedia(input) {
+    if (!Array.isArray(input)) return [];
+    return input
+      .filter((m) => m && typeof m.url === 'string' && typeof m.publicId === 'string')
+      .map((m) => ({ url: m.url, publicId: m.publicId }));
+  }
+
+  /** Throw if `count` exceeds the admin-configured per-listing image limit. */
+  async assertWithinImageLimit(count) {
+    const { uploadLimits } = await settingsService.get();
+    const maxImages = uploadLimits?.maxImagesPerListing ?? 5;
+    if (count > maxImages) {
+      throw ApiError.badRequest(`You can upload at most ${maxImages} image(s) per listing`);
+    }
+  }
+
   /** Resolve a listing by Mongo id or by URL slug. */
   async getById(idOrSlug, { incrementView = false } = {}) {
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(idOrSlug);
@@ -186,12 +212,20 @@ class ListingService {
 
   async update(id, userId, data, files = []) {
     const listing = await this.assertOwner(id, userId);
-    Object.assign(listing, data);
-    const geo = this.buildGeo(data);
+    const { mediaImages, ...rest } = data;
+    Object.assign(listing, rest);
+    const geo = this.buildGeo(rest);
     if (geo) listing.geo = geo;
-    if (files.length) {
-      const uploaded = await this.uploadImages(files, { existingCount: listing.images.length });
-      listing.images = [...listing.images, ...uploaded];
+
+    // Append both library-picked and freshly-uploaded images to what's there,
+    // enforcing the per-listing cap across the combined total.
+    const picked = this.normalizePickedMedia(mediaImages);
+    if (picked.length || files.length) {
+      await this.assertWithinImageLimit(listing.images.length + picked.length + files.length);
+      const uploaded = await this.uploadImages(files, {
+        existingCount: listing.images.length + picked.length,
+      });
+      listing.images = [...listing.images, ...picked, ...uploaded];
     }
     // Edited approved listings re-enter moderation.
     if (listing.status === LISTING_STATUS.APPROVED) listing.status = LISTING_STATUS.PENDING;

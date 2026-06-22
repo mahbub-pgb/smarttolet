@@ -29,6 +29,7 @@ class AdvertisementRepository extends BaseRepository {}
 class BlogPostRepository extends BaseRepository {}
 class BlogCategoryRepository extends BaseRepository {}
 class BlogTagRepository extends BaseRepository {}
+class MediaRepository extends BaseRepository {}
 
 module.exports = {
   userRepository: new UserRepository(models.User),
@@ -45,4 +46,5 @@ module.exports = {
   blogPostRepository: new BlogPostRepository(models.BlogPost),
   blogCategoryRepository: new BlogCategoryRepository(models.BlogCategory),
   blogTagRepository: new BlogTagRepository(models.BlogTag),
+  mediaRepository: new MediaRepository(models.Media),
 };

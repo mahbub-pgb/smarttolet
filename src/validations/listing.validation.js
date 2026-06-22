@@ -107,6 +107,11 @@ const create = {
         })
         .optional(),
     ),
+    // Images picked from the user's media library (already uploaded). Sent as a
+    // JSON string over multipart; merged with any freshly uploaded files.
+    mediaImages: jsonObject(
+      z.array(z.object({ url: z.string().min(1), publicId: z.string().min(1) })).max(30).optional(),
+    ),
     // 'approved' is a publish request, honoured only for staff in the service.
     status: z.enum([LISTING_STATUS.DRAFT, LISTING_STATUS.PENDING, LISTING_STATUS.APPROVED]).optional(),
   }),

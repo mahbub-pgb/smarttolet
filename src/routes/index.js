@@ -19,6 +19,7 @@ router.get('/health', (_req, res) =>
 router.use('/auth', require('./auth.routes'));
 router.use('/listings', require('./listing.routes'));
 router.use('/blog', require('./blog.routes'));
+router.use('/media', require('./media.routes'));
 router.use('/me', require('./user.routes'));
 router.use('/chat', require('./chat.routes'));
 router.use('/payments', require('./payment.routes'));
