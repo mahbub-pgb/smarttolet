@@ -18,4 +18,5 @@ module.exports = {
   BlogCategory: require('./blogCategory.model'),
   BlogTag: require('./blogTag.model'),
   Media: require('./media.model'),
+  ContactView: require('./contactView.model'),
 };

@@ -2,6 +2,7 @@
 
 const listingService = require('../services/listing.service');
 const placesService = require('../services/places.service');
+const contactViewService = require('../services/contactView.service');
 const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess, paginate } = require('../utils/ApiResponse');
 
@@ -48,6 +49,25 @@ exports.markRented = asyncHandler(async (req, res) => {
 exports.markAvailable = asyncHandler(async (req, res) => {
   const listing = await listingService.setRentedStatus(req.params.id, req.user, false);
   sendSuccess(res, { message: 'Listing marked as available', data: { listing } });
+});
+
+// Whether the current user already revealed this listing's contact (and the
+// details if so) — lets the client skip the prompt on return visits.
+exports.contactViewStatus = asyncHandler(async (req, res) => {
+  const data = await contactViewService.statusFor(req.params.id, req.user);
+  sendSuccess(res, { data });
+});
+
+// Reveal owner contact + record the view (for the owner's analytics).
+exports.recordContactView = asyncHandler(async (req, res) => {
+  const data = await contactViewService.record(req.params.id, req.user);
+  sendSuccess(res, { message: 'Contact revealed', data });
+});
+
+// Owner/staff: who viewed this listing's contact, and how many.
+exports.contactViews = asyncHandler(async (req, res) => {
+  const data = await contactViewService.listViewers(req.params.id, req.user);
+  sendSuccess(res, { data });
 });
 
 exports.getOne = asyncHandler(async (req, res) => {

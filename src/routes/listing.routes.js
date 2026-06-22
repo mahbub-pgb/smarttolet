@@ -185,6 +185,31 @@ router.post('/:id/mark-available', authenticate, validate({ params: v.idParam })
 
 /**
  * @openapi
+ * /listings/{id}/contact-view:
+ *   post:
+ *     tags: [Listings]
+ *     summary: Reveal the owner's contact details and record the view
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Contact details, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ * /listings/{id}/contact-views:
+ *   get:
+ *     tags: [Listings]
+ *     summary: Owner/staff — list users who viewed this listing's contact
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Viewers, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ */
+router.get('/:id/contact-view', authenticate, validate({ params: v.idParam }), ctrl.contactViewStatus);
+router.post('/:id/contact-view', authenticate, validate({ params: v.idParam }), ctrl.recordContactView);
+router.get('/:id/contact-views', authenticate, validate({ params: v.idParam }), ctrl.contactViews);
+
+/**
+ * @openapi
  * /listings/{id}/report:
  *   post:
  *     tags: [Listings]

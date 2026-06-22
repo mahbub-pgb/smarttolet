@@ -190,9 +190,11 @@ class ListingService {
     const query = isObjectId
       ? listingRepository.findById(idOrSlug, undefined, {})
       : listingRepository.findOne({ slug: idOrSlug });
+    // Note: owner.mobile is intentionally NOT projected here — contact details
+    // are revealed (and tracked) via the /contact-view endpoint.
     const listing = await query.populate(
       'owner',
-      'fullName profileImage isLandlordVerified mobile',
+      'fullName profileImage isLandlordVerified',
     );
     if (!listing) throw ApiError.notFound('Listing not found');
     if (incrementView) {
