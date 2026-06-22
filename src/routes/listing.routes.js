@@ -159,6 +159,32 @@ router.post('/:id/renew', authenticate, validate({ params: v.idParam }), ctrl.re
 
 /**
  * @openapi
+ * /listings/{id}/mark-rented:
+ *   post:
+ *     tags: [Listings]
+ *     summary: Mark a listing as rented (deactivate). Allowed for the owner or staff.
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Listing marked rented, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ * /listings/{id}/mark-available:
+ *   post:
+ *     tags: [Listings]
+ *     summary: Mark a rented listing as available again. Allowed for the owner or staff.
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Listing reactivated, content: { application/json: { schema: { $ref: '#/components/schemas/ApiSuccess' } } } }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ */
+router.post('/:id/mark-rented', authenticate, validate({ params: v.idParam }), ctrl.markRented);
+router.post('/:id/mark-available', authenticate, validate({ params: v.idParam }), ctrl.markAvailable);
+
+/**
+ * @openapi
  * /listings/{id}/report:
  *   post:
  *     tags: [Listings]

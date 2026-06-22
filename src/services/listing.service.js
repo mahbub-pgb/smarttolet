@@ -508,6 +508,52 @@ class ListingService {
     return listing;
   }
 
+  /**
+   * Mark a listing as rented (deactivated) or available again. Allowed for the
+   * listing's owner or any staff member. Toggling is constrained so it can't be
+   * used to bypass moderation: only an approved listing can become rented, and
+   * only a rented listing can be reactivated (back to approved). When staff act
+   * on someone else's listing, the owner is notified.
+   */
+  async setRentedStatus(id, actor, rented) {
+    const listing = await listingRepository.findById(id);
+    if (!listing) throw ApiError.notFound('Listing not found');
+
+    const isOwner = String(listing.owner) === String(actor._id);
+    const isStaff = STAFF_ROLES.includes(actor.role);
+    if (!isOwner && !isStaff) {
+      throw ApiError.forbidden('You can only update your own listings');
+    }
+
+    if (rented) {
+      if (listing.status === LISTING_STATUS.RENTED) return listing; // idempotent
+      if (listing.status !== LISTING_STATUS.APPROVED) {
+        throw ApiError.badRequest('Only an active (approved) listing can be marked as rented');
+      }
+      listing.status = LISTING_STATUS.RENTED;
+    } else {
+      if (listing.status !== LISTING_STATUS.RENTED) {
+        throw ApiError.badRequest('Only a rented listing can be marked available again');
+      }
+      listing.status = LISTING_STATUS.APPROVED;
+      listing.expiresAt = await this.computeExpiry();
+      listing.expiryWarnedAt = undefined;
+    }
+    await listing.save();
+
+    if (!isOwner) {
+      await notificationService.notify(listing.owner, {
+        title: rented ? 'Listing marked as rented' : 'Listing reactivated',
+        description: rented
+          ? `"${listing.title}" was marked as rented and is no longer publicly visible.`
+          : `"${listing.title}" is live again.`,
+        type: rented ? NOTIFICATION_TYPES.LISTING_RENTED : NOTIFICATION_TYPES.LISTING_REACTIVATED,
+        reference: { model: 'Listing', id: listing._id },
+      });
+    }
+    return listing;
+  }
+
   async moderate(id, moderatorId, { approve, reason }) {
     const listing = await listingRepository.findById(id);
     if (!listing) throw ApiError.notFound('Listing not found');

@@ -47,6 +47,9 @@ const REPORT_REASONS = Object.freeze([
   'wrong_information',
   'scam',
   'duplicate_listing',
+  // A public user flagging that the property is no longer available; surfaces
+  // to admins as a request to deactivate (mark rented) the listing.
+  'already_rented',
   'other',
 ]);
 
@@ -87,6 +90,8 @@ const NOTIFICATION_TYPES = Object.freeze({
   LISTING_APPROVED: 'listing_approved',
   LISTING_REJECTED: 'listing_rejected',
   LISTING_REMOVED: 'listing_removed',
+  LISTING_RENTED: 'listing_rented',
+  LISTING_REACTIVATED: 'listing_reactivated',
   LISTING_EXPIRING: 'listing_expiring',
   NEW_MESSAGE: 'new_message',
   PROPERTY_REPORTED: 'property_reported',

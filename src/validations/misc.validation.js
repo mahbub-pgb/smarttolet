@@ -149,6 +149,9 @@ const report = {
       status: z.enum(Object.values(REPORT_STATUS)).optional(),
       note: z.string().max(1000).optional(),
       suspendListing: z.boolean().optional(),
+      // Mark the reported listing as rented (deactivate) — used for
+      // "already_rented" requests from the public.
+      markRented: z.boolean().optional(),
     }),
   },
 };

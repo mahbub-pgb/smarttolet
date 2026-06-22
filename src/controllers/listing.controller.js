@@ -40,6 +40,16 @@ exports.renew = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: 'Listing renewed', data: { listing } });
 });
 
+exports.markRented = asyncHandler(async (req, res) => {
+  const listing = await listingService.setRentedStatus(req.params.id, req.user, true);
+  sendSuccess(res, { message: 'Listing marked as rented', data: { listing } });
+});
+
+exports.markAvailable = asyncHandler(async (req, res) => {
+  const listing = await listingService.setRentedStatus(req.params.id, req.user, false);
+  sendSuccess(res, { message: 'Listing marked as available', data: { listing } });
+});
+
 exports.getOne = asyncHandler(async (req, res) => {
   const listing = await listingService.getById(req.params.id, { incrementView: true });
   res.set('Cache-Control', PUBLIC_CACHE);
